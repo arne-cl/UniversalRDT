@@ -5,7 +5,7 @@ echo $rxn_folder
 cd $rxn_folder
 # first: run rdt
 smiles=$( cat rxn.smiles )
-java -jar ${RDT_JAR:-../../rdt-2.5.0-SNAPSHOT-jar-with-dependencies.jar} -Q SMI -q "$smiles" -g -c -b -j AAM -f TEXT
+java -jar ${RDT_JAR:-../../../rdt-2.5.0-SNAPSHOT-jar-with-dependencies.jar} -Q SMI -q "$smiles" -g -c -b -j AAM -f TEXT
 # now split RDT output into mol-files
 rm MOL_*
 csplit -f MOL_ ECBLAST_smiles_AAM.rxn '/$MOL/' {*}
