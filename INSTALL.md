@@ -135,7 +135,18 @@ Where:
 
 ## Key gotchas & hurdles
 
-### 1. RDT version pinning
+### 1. Unicode filename issues in zip archives
+
+The `reaction_intermediates.zip` file contains filenames with special Unicode characters (e.g., `MOL_.mdl`, `MOL_.inchi`) that can cause "mismatching filename" errors during extraction. This happens when the zip file was created on a system with different locale settings than the extraction system.
+
+**Solution:** Use `unzip` with the `-O UTF-8` flag to explicitly specify UTF-8 encoding:
+```bash
+unzip -o -O UTF-8 reaction_intermediates.zip -d AraCore/
+```
+
+The Makefile has been updated to use this flag automatically.
+
+### 2. RDT version pinning
 
 **Must use v2.5.0.** The output file naming convention
 (`ECBLAST_smiles_AAM.rxn`) and the internal `.rxn` file format changed in

@@ -23,14 +23,14 @@ docker: Dockerfile $(RDT_JAR)
 # ── Data extraction ───────────────────────────────────────────────
 
 prepare-aracore: AraCore/reaction_intermediates.zip
-	unzip -o -u $< -d AraCore/
+	unzip -o -O UTF-8 $< -d AraCore/
 
 MetaCyc/reaction_intermediates.zip: MetaCyc/reaction_intermediates.zip.01 MetaCyc/reaction_intermediates.zip.02
 	cat $^ > $@
 
 prepare-metacyc: MetaCyc/reaction_intermediates.zip
-	unzip -o -u $< -d MetaCyc/
-	unzip -o -u MetaCyc/atom_mappings.zip -d MetaCyc/
+	unzip -o -u -O UTF-8 $< -d MetaCyc/
+	unzip -o -u -O UTF-8 MetaCyc/atom_mappings.zip -d MetaCyc/
 
 # ── Run pipeline (native) ─────────────────────────────────────────
 
