@@ -33,20 +33,16 @@ obabel -i mdl  ${fn2}.mdl -oinchikey -O ${fn2}.inchikey
 
 if [ -s ${fn2}.inchikey ]
 then
-#now we need the name of the molecule metabolite
-#echo grep $(cat ${fn2}.inchikey) species_id_inchikey.txt
-species_id_without_cmp=$(grep $(cat ${fn2}.inchikey) species_id_inchikey.txt | cut -f1 | sed 's/_DASH_/-/g')
-#grep $(cat ${fn2}.inchikey) ../../species_id_without_cmp_inchikey.txt
-#cat ${fn2}.inchikey
-#echo $species_id_without_cmp
-#echo $counter $from_num
+species_id_without_cmp=$(grep "$(cat ${fn2}.inchikey)" species_id_inchikey.txt | cut -f1 | sed 's/_DASH_/-/g')
+if [ -n "$species_id_without_cmp" ]
+then
 if [ $counter -le $from_num ]
 then
-species_id=$(grep $species_id_without_cmp from_species_with_cmp)
+species_id=$(grep "$species_id_without_cmp" from_species_with_cmp)
 mapping_side="from"
 mapping_end="="
 else
-species_id=$(grep $species_id_without_cmp to_species_with_cmp)
+species_id=$(grep "$species_id_without_cmp" to_species_with_cmp)
 mapping_side="to"
 mapping_end=","
 fi
@@ -82,6 +78,8 @@ atom_counter=1
 fi
 echo ${mapping_index}"	${mapping_side}	"${species_id}":"${element}"#"${atom_counter}${mapping_end} >> mapping_lines.txt
 done
+
+fi
 
 fi #if [ -s ${fn2}.inchikey ]
 counter=$(($counter + 1))
