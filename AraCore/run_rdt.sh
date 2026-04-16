@@ -21,19 +21,27 @@ counter=1
 
 for fn2 in MOL_??
 do
-tail -n +2 $fn2 | grep -v '^M  CHG' > ${fn2}.mdl
+tail -n +2 $fn2 > ${fn2}.mdl
 # MOL_nn.mdl now contains one molecule of the rdt .rxn file
+# NOTE: We now preserve M CHG lines to maintain charge information for InChIKey matching
+# This fixes the InChIKey mismatch bug where charge-stripped keys didn't match references
 awk '(NF==16) { print $4 "\t" $14; }; (NF==15) { print $4 "\t" (0+$13); }' ${fn2}.mdl > ${fn2}.rdt_index
-#~/Documents/Promotion/INCHI-1-SRC/INCHI_EXE/bin/Linux/inchi-1 ${fn2}.mdl
-#tail -n +3 $fn2 | grep -v '^M  CHG' |  sed '3,3 s/^\(...........\)0/\1 /'> ${fn2}.mdl
-#-xT/nochg - RDT sometimes changes protons, leave them out of InChI
-#-xa we want aux info - it contains the oririgal position in the input - the base for our mapping
+#-xT/nochg - RDT sometimes changes protons, leave them out of InChI (for canonical atom ordering)
+#-xa we want aux info - it contains the original position in the input - the base for our mapping
 obabel -i mdl  ${fn2}.mdl -o inchi -xa -xT/nochg -O ${fn2}.inchi
 obabel -i mdl  ${fn2}.mdl -oinchikey -O ${fn2}.inchikey
 
 if [ -s ${fn2}.inchikey ]
 then
+# Lookup species by InChIKey in the reference table
 species_id_without_cmp=$(grep "$(cat ${fn2}.inchikey)" species_id_inchikey.txt | cut -f1 | sed 's/_DASH_/-/g')
+
+# Fallback: if exact match fails, try first 14 characters (connectivity layer only)
+# This handles cases where InChIKeys differ due to stereochemistry or charge handling
+if [ -z "$species_id_without_cmp" ] && [ -s "${fn2}.inchikey" ]; then
+    species_id_without_cmp=$(grep "$(head -c14 ${fn2}.inchikey)" species_id_inchikey.txt | cut -f1 | sed 's/_DASH_/-/g')
+fi
+
 if [ -n "$species_id_without_cmp" ]
 then
 if [ $counter -le $from_num ]
