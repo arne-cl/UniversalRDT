@@ -85,12 +85,46 @@ The grep for InChIKey will fail because:
 
 1. **Why does `run_rdt.sh` remove `M  CHG` lines?**
    - This is intentional (`grep -v '^M  CHG'`)
-   - Need to consult the paper to understand the rationale
-   - Possible reasons: RDT may modify protonation incorrectly
+   - **Answer from paper**: The authors used `-xT/nochg` because "RDT sometimes changes protons" and they want to ignore these changes for canonical atom identification.
+   - However, this creates inconsistency: `-xT/nochg` is used for InChI (canonical ordering) but NOT for InChIKey (species identification)
 
 2. **Does Open Babel 3.0.0 behave differently?**
-   - Need to test if 3.0.0 handles the charge-stripped MDL differently
-   - Or if the `-xT/nochg` flag behavior changed
+   - **Answer**: No, identical behavior confirmed via Docker test
+
+## Comprehensive Diagnostic Results (2026-04-16)
+
+Run `python3 AraCore/diagnose_inchikey_mismatch.py` for full diagnostic.
+
+### AraCore Results (225 species tested)
+
+| Method | Description | Total | Full Matches | Suffix Diff | No Match | Full% |
+|--------|-------------|-------|--------------|-------------|----------|-------|
+| A | SMILES (current recreate_data.sh) | 225 | 225 | 0 | 0 | **100.0%** |
+| B | SMILES + `-xT/nochg` | 225 | 57 | 165 | 3 | 25.3% |
+| E | MDL stripped (no M CHG) | 223 | 74 | 1 | 148 | 33.2% |
+| F | MDL stripped + `-xT/nochg` | 223 | 23 | 1 | 50 | 10.3% |
+
+### Key Findings
+
+1. **Reference files are correct**: `species_id_inchikey.txt` files contain charged InChIKeys (-M suffix)
+2. **Current method works perfectly**: Method A (SMILES without `-xT/nochg`) matches 100%
+3. **165 species affected by `-xT/nochg`**: These charged molecules get -N suffix instead of -M
+4. **Pre-existing MDL files work**: When `M  CHG` lines are present, obabel infers charge from atom records
+
+### The Bug Location
+
+The bug **does not occur** in `recreate_data.sh` or in the reference files. It occurs **during RDT processing** when:
+
+1. RDT generates a new MDL file from reaction SMILES
+2. `run_rdt.sh` removes `M  CHG` lines (line 24)
+3. If RDT modified protonation, the atom records may have wrong charges
+4. obabel generates InChIKey without proper charge info → mismatch
+
+### Why Pre-existing Files Work
+
+The pre-existing `.inchikey` files in `reaction_intermediates/` folders contain correct InChIKeys because:
+- The original run preserved charge information correctly
+- OR the original run used the correct method (matching reference)
 
 ## Comparison with MetaCyc Script
 
