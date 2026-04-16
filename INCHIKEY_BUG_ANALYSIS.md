@@ -143,3 +143,68 @@ This matches only the first 14 characters (connectivity layer) when the full InC
 - Open Babel releases: https://github.com/openbabel/openbabel/releases
 - Tautomer fix PR #2171: commit `a40bfa690` (May 2020)
 - InChI format: `-xT/nochg` ignores charge and protonation
+
+## Recommended Fix Options
+
+Based on the diagnostic results, here are the possible fixes:
+
+### Option 1: Don't Remove M CHG Lines (Recommended)
+
+**Change**: Remove the `grep -v '^M  CHG'` from line 24 of `run_rdt.sh`
+
+**Rationale**: 
+- Preserves charge information from RDT output
+- MDL files will have proper `M  CHG` lines
+- InChIKey generation will include charge info, matching references
+- The pre-existing MDL files already work correctly with charges
+
+**Risk**: If RDT truly modifies protonation incorrectly, this could propagate errors
+
+### Option 2: Add MetaCyc-Style Fallback
+
+**Change**: Add first-14-char fallback to `run_rdt.sh` (like MetaCyc has)
+
+**Code**:
+```bash
+species_id_without_cmp=$(grep "$(cat ${fn2}.inchikey)" species_id_inchikey.txt | cut -f1 | sed 's/_DASH_/-/g')
+if [ -z "$species_id_without_cmp" ] && [ -s "${fn2}.inchikey" ]; then
+    # Fallback: match first 14 characters (connectivity layer)
+    species_id_without_cmp=$(grep "$(head -c14 ${fn2}.inchikey)" species_id_inchikey.txt | cut -f1 | sed 's/_DASH_/-/g')
+fi
+if [ -n "$species_id_without_cmp" ]
+then
+    # ... rest of script
+```
+
+**Rationale**:
+- Handles cases where InChIKeys don't match due to charge/stereochemistry
+- Already proven to work in MetaCyc
+- Minimal change, defensive programming
+
+**Risk**: Could match wrong species if first 14 chars are not unique
+
+### Option 3: Use -xT/nochg for Reference Generation
+
+**Change**: Add `-xT/nochg` to `recreate_data.sh`
+
+**Code**:
+```bash
+obabel -:"$smiles" -oinchikey -xT/nochg
+```
+
+**Rationale**:
+- Aligns reference generation with the paper's intent (ignore RDT proton changes)
+- Both reference and generated InChIKeys would use nochg
+
+**Risk**: 
+- 165 species would have different reference InChIKeys
+- Would need to regenerate all `species_id_inchikey.txt` files
+- Could break compatibility with existing data
+
+### Decision: Option 1 + Option 2 Combined
+
+The safest approach is **Option 1** (don't strip charges) combined with **Option 2** (add fallback):
+
+1. Keep M CHG lines to preserve charge information
+2. Add fallback for robustness
+3. This matches the successful pre-existing MDL files behavior
