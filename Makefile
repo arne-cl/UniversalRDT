@@ -70,6 +70,12 @@ clean: clean-aracore clean-metacyc
 
 clean-aracore:
 	rm -rf AraCore/reaction_intermediates/
+	rm -f AraCore/all_mapping.txt AraCore/all_mapping.sorted.txt \
+	      AraCore/all_mapping.N.sorted.txt \
+	      AraCore/all_atoms.N.sorted.txt AraCore/all_atoms.N.count.txt \
+	      AraCore/all_atoms.N.count.histo \
+	      AraCore/all_rxn_N_count.txt AraCore/all_rxn_N_count.histo
+	rm -f AraCore/inchikey_diagnostic_results.csv
 
 clean-metacyc:
 	rm -rf MetaCyc/reaction_intermediates/ MetaCyc/atom_mappings/
