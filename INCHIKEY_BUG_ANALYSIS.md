@@ -57,6 +57,19 @@ grep $species_id_without_cmp from_species_with_cmp
 
 The paper was published in 2022, so original code likely used Open Babel 3.0.0 (2019).
 
+### Version Testing (2026-04-16)
+
+**Tested with Docker (Ubuntu 20.04, Open Babel 3.0.0):**
+
+| Version | Charged SMILES | With `-xT/nochg` | Neutral SMILES |
+|---------|----------------|------------------|----------------|
+| 3.0.0 (Ubuntu 20.04) | `PXQPEWDEAKTCGB-UHFFFAOYSA-M` | `PXQPEWDEAKTCGB-UHFFFAOYSA-N` | `PXQPEWDEAKTCGB-UHFFFAOYSA-N` |
+| 3.1.1 (current) | `PXQPEWDEAKTCGB-UHFFFAOYSA-M` | `PXQPEWDEAKTCGB-UHFFFAOYSA-N` | `PXQPEWDEAKTCGB-UHFFFAOYSA-N` |
+
+**Result**: Identical behavior. The bug is **NOT caused by Open Babel version differences**.
+
+See `test-obabel-300.dockerfile` for the test Dockerfile.
+
 ## Test Case
 
 Run `./test_inchikey_mismatch.sh` to reproduce the bug:
