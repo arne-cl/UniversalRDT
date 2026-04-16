@@ -1,0 +1,1 @@
+M_Gln[c]:O#2=M_Gln[p]:O#2,M_Gln[c]:C#5=M_Gln[p]:C#5,M_Gln[c]:O#3=M_Gln[p]:O#3,M_Gln[c]:C#3=M_Gln[p]:C#3,M_Gln[c]:N#1=M_Gln[p]:N#1,M_Gln[c]:C#1=M_Gln[p]:C#1,M_Gln[c]:C#2=M_Gln[p]:C#2,M_Gln[c]:C#4=M_Gln[p]:C#4,M_Gln[c]:O#1=M_Gln[p]:O#1,M_Gln[c]:N#2=M_Gln[p]:N#2

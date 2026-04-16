@@ -1,0 +1,1 @@
+M_PEP[c]:O#1=M_PEP[h]:O#1,M_PEP[c]:C#3=M_PEP[h]:C#3,M_PEP[c]:O#2=M_PEP[h]:O#2,M_PEP[c]:C#2=M_PEP[h]:C#2,M_PEP[c]:O#6=M_PEP[h]:O#6,M_PEP[c]:P#1=M_PEP[h]:P#1,M_PEP[c]:O#3=M_PEP[h]:O#3,M_PEP[c]:O#4=M_PEP[h]:O#4,M_PEP[c]:O#5=M_PEP[h]:O#5,M_PEP[c]:C#1=M_PEP[h]:C#1,M_Pi[h]:O#1=M_Pi[c]:O#1,M_Pi[h]:P#1=M_Pi[c]:P#1,M_Pi[h]:O#2=M_Pi[c]:O#2,M_Pi[h]:O#3=M_Pi[c]:O#3,M_Pi[h]:O#4=M_Pi[c]:O#4

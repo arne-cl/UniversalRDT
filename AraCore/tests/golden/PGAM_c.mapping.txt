@@ -1,0 +1,1 @@
+M_2PGA[c]:O#2=M_PGA[c]:O#2,M_2PGA[c]:C#3=M_PGA[c]:C#3,M_2PGA[c]:O#3=M_PGA[c]:O#3,M_2PGA[c]:C#2=M_PGA[c]:C#2,M_2PGA[c]:O#7=M_PGA[c]:O#1,M_2PGA[c]:P#1=M_PGA[c]:P#1,M_2PGA[c]:O#4=M_PGA[c]:O#6,M_2PGA[c]:O#5=M_PGA[c]:O#4,M_2PGA[c]:O#6=M_PGA[c]:O#5,M_2PGA[c]:C#1=M_PGA[c]:C#1,M_2PGA[c]:O#1=M_PGA[c]:O#7

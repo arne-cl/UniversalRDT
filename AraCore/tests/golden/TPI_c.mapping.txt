@@ -1,0 +1,1 @@
+M_GAP[c]:O#1=M_DHAP[c]:O#1,M_GAP[c]:C#1=M_DHAP[c]:C#1,M_GAP[c]:C#3=M_DHAP[c]:C#3,M_GAP[c]:O#2=M_DHAP[c]:O#2,M_GAP[c]:C#2=M_DHAP[c]:C#2,M_GAP[c]:O#6=M_DHAP[c]:O#6,M_GAP[c]:P#1=M_DHAP[c]:P#1,M_GAP[c]:O#3=M_DHAP[c]:O#3,M_GAP[c]:O#4=M_DHAP[c]:O#4,M_GAP[c]:O#5=M_DHAP[c]:O#5

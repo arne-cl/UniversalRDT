@@ -1,0 +1,1 @@
+M_PEP[c]:O#1=M_2PGA[c]:O#2,M_PEP[c]:C#3=M_2PGA[c]:C#3,M_PEP[c]:O#2=M_2PGA[c]:O#3,M_PEP[c]:C#2=M_2PGA[c]:C#2,M_PEP[c]:O#6=M_2PGA[c]:O#7,M_PEP[c]:P#1=M_2PGA[c]:P#1,M_PEP[c]:O#3=M_2PGA[c]:O#4,M_PEP[c]:O#4=M_2PGA[c]:O#5,M_PEP[c]:O#5=M_2PGA[c]:O#6,M_PEP[c]:C#1=M_2PGA[c]:C#1,M_H2O[c]:O#1=M_2PGA[c]:O#1

@@ -1,0 +1,1 @@
+M_Pro[c]:O#1=M_Pro[p]:O#1,M_Pro[c]:C#5=M_Pro[p]:C#5,M_Pro[c]:O#2=M_Pro[p]:O#2,M_Pro[c]:C#4=M_Pro[p]:C#4,M_Pro[c]:C#2=M_Pro[p]:C#2,M_Pro[c]:C#1=M_Pro[p]:C#1,M_Pro[c]:C#3=M_Pro[p]:C#3,M_Pro[c]:N#1=M_Pro[p]:N#1

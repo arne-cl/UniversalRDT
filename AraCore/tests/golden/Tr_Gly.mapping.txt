@@ -1,0 +1,1 @@
+M_Gly[c]:O#1=M_Gly[p]:O#1,M_Gly[c]:C#2=M_Gly[p]:C#2,M_Gly[c]:O#2=M_Gly[p]:O#2,M_Gly[c]:C#1=M_Gly[p]:C#1,M_Gly[c]:N#1=M_Gly[p]:N#1

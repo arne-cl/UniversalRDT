@@ -1,0 +1,1 @@
+M_mDAP[h]:O#1=M_CO2[h]:O#1,M_mDAP[h]:C#6=M_CO2[h]:C#1,M_mDAP[h]:O#2=M_CO2[h]:O#2,M_mDAP[h]:C#4=M_Lys[h]:C#4,M_mDAP[h]:N#1=M_Lys[h]:N#1,M_mDAP[h]:C#2=M_Lys[h]:C#2,M_mDAP[h]:C#1=M_Lys[h]:C#1,M_mDAP[h]:C#3=M_Lys[h]:C#3,M_mDAP[h]:C#5=M_Lys[h]:C#5,M_mDAP[h]:C#7=M_Lys[h]:C#6,M_mDAP[h]:O#3=M_Lys[h]:O#2,M_mDAP[h]:O#4=M_Lys[h]:O#1,M_mDAP[h]:N#2=M_Lys[h]:N#2

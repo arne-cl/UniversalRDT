@@ -1,0 +1,1 @@
+M_Glu[c]:O#1=M_Glu[p]:O#1,M_Glu[c]:C#4=M_Glu[p]:C#4,M_Glu[c]:O#2=M_Glu[p]:O#2,M_Glu[c]:C#2=M_Glu[p]:C#2,M_Glu[c]:C#1=M_Glu[p]:C#1,M_Glu[c]:C#3=M_Glu[p]:C#3,M_Glu[c]:C#5=M_Glu[p]:C#5,M_Glu[c]:O#3=M_Glu[p]:O#3,M_Glu[c]:O#4=M_Glu[p]:O#4,M_Glu[c]:N#1=M_Glu[p]:N#1

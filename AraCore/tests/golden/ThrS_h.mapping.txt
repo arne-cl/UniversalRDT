@@ -1,0 +1,1 @@
+M_PH-Ser[h]:O#1=M_Thr[h]:O#2,M_PH-Ser[h]:C#4=M_Thr[h]:C#4,M_PH-Ser[h]:O#2=M_Thr[h]:O#3,M_PH-Ser[h]:C#3=M_Thr[h]:C#3,M_PH-Ser[h]:N#1=M_Thr[h]:N#1,M_PH-Ser[h]:C#1=M_Thr[h]:C#2,M_PH-Ser[h]:C#2=M_Thr[h]:C#1,M_PH-Ser[h]:O#6=M_Thr[h]:O#1,M_PH-Ser[h]:P#1=M_Pi[h]:P#1,M_PH-Ser[h]:O#3=M_Pi[h]:O#1,M_PH-Ser[h]:O#4=M_Pi[h]:O#2,M_PH-Ser[h]:O#5=M_Pi[h]:O#3,M_H2O[h]:O#1=M_Pi[h]:O#4

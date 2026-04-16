@@ -1,0 +1,1 @@
+M_CB-Asp[h]:O#5=M_DHO[h]:O#4,M_CB-Asp[h]:C#5=M_DHO[h]:C#5,M_CB-Asp[h]:N#1=M_DHO[h]:N#2,M_CB-Asp[h]:N#2=M_DHO[h]:N#1,M_CB-Asp[h]:C#2=M_DHO[h]:C#2,M_CB-Asp[h]:C#4=M_DHO[h]:C#4,M_CB-Asp[h]:O#3=M_DHO[h]:O#2,M_CB-Asp[h]:O#4=M_DHO[h]:O#3,M_CB-Asp[h]:C#1=M_DHO[h]:C#1,M_CB-Asp[h]:C#3=M_DHO[h]:C#3,M_CB-Asp[h]:O#1=M_DHO[h]:O#1,M_CB-Asp[h]:O#2=M_H2O[h]:O#1

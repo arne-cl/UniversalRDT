@@ -1,0 +1,1 @@
+M_Thr[h]:O#2=M_OB[h]:O#2,M_Thr[h]:C#4=M_OB[h]:C#4,M_Thr[h]:O#3=M_OB[h]:O#3,M_Thr[h]:C#3=M_OB[h]:C#3,M_Thr[h]:N#1=M_NH4[h]:N#1,M_Thr[h]:C#2=M_OB[h]:C#2,M_Thr[h]:O#1=M_OB[h]:O#1,M_Thr[h]:C#1=M_OB[h]:C#1

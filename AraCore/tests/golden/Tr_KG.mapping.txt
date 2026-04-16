@@ -1,0 +1,1 @@
+M_KG[c]:O#4=M_KG[p]:O#4,M_KG[c]:C#5=M_KG[p]:C#5,M_KG[c]:O#5=M_KG[p]:O#5,M_KG[c]:C#3=M_KG[p]:C#3,M_KG[c]:O#1=M_KG[p]:O#1,M_KG[c]:C#1=M_KG[p]:C#1,M_KG[c]:C#2=M_KG[p]:C#2,M_KG[c]:C#4=M_KG[p]:C#4,M_KG[c]:O#2=M_KG[p]:O#2,M_KG[c]:O#3=M_KG[p]:O#3

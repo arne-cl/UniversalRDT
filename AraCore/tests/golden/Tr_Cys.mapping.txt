@@ -1,0 +1,1 @@
+M_Cys[c]:O#1=M_Cys[p]:O#1,M_Cys[c]:C#3=M_Cys[p]:C#3,M_Cys[c]:O#2=M_Cys[p]:O#2,M_Cys[c]:C#2=M_Cys[p]:C#2,M_Cys[c]:N#1=M_Cys[p]:N#1,M_Cys[c]:C#1=M_Cys[p]:C#1,M_Cys[c]:S#1=M_Cys[p]:S#1

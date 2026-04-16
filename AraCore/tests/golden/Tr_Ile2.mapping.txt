@@ -1,0 +1,1 @@
+M_Ile[h]:O#1=M_Ile[c]:O#1,M_Ile[h]:C#6=M_Ile[c]:C#6,M_Ile[h]:O#2=M_Ile[c]:O#2,M_Ile[h]:C#5=M_Ile[c]:C#5,M_Ile[h]:N#1=M_Ile[c]:N#1,M_Ile[h]:C#4=M_Ile[c]:C#4,M_Ile[h]:C#2=M_Ile[c]:C#2,M_Ile[h]:C#3=M_Ile[c]:C#3,M_Ile[h]:C#1=M_Ile[c]:C#1

@@ -1,0 +1,1 @@
+M_ORO[m]:O#1=M_ORO[c]:O#1,M_ORO[m]:C#3=M_ORO[c]:C#3,M_ORO[m]:C#1=M_ORO[c]:C#1,M_ORO[m]:C#2=M_ORO[c]:C#2,M_ORO[m]:N#1=M_ORO[c]:N#1,M_ORO[m]:C#5=M_ORO[c]:C#5,M_ORO[m]:O#4=M_ORO[c]:O#4,M_ORO[m]:N#2=M_ORO[c]:N#2,M_ORO[m]:C#4=M_ORO[c]:C#4,M_ORO[m]:O#2=M_ORO[c]:O#2,M_ORO[m]:O#3=M_ORO[c]:O#3

@@ -1,0 +1,1 @@
+M_P5C[m]:O#1=M_P5C[c]:O#1,M_P5C[m]:C#5=M_P5C[c]:C#5,M_P5C[m]:O#2=M_P5C[c]:O#2,M_P5C[m]:C#4=M_P5C[c]:C#4,M_P5C[m]:N#1=M_P5C[c]:N#1,M_P5C[m]:C#3=M_P5C[c]:C#3,M_P5C[m]:C#1=M_P5C[c]:C#1,M_P5C[m]:C#2=M_P5C[c]:C#2

@@ -1,0 +1,1 @@
+M_GCEA[c]:O#3=M_GCEA[p]:O#3,M_GCEA[c]:C#3=M_GCEA[p]:C#3,M_GCEA[c]:O#4=M_GCEA[p]:O#4,M_GCEA[c]:C#2=M_GCEA[p]:C#2,M_GCEA[c]:O#2=M_GCEA[p]:O#2,M_GCEA[c]:C#1=M_GCEA[p]:C#1,M_GCEA[c]:O#1=M_GCEA[p]:O#1

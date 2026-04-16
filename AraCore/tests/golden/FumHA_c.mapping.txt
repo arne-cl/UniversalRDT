@@ -1,0 +1,1 @@
+M_Fum[c]:O#1=M_Mal[c]:O#4,M_Fum[c]:C#3=M_Mal[c]:C#4,M_Fum[c]:O#2=M_Mal[c]:O#5,M_Fum[c]:C#1=M_Mal[c]:C#2,M_Fum[c]:C#2=M_Mal[c]:C#1,M_Fum[c]:C#4=M_Mal[c]:C#3,M_Fum[c]:O#3=M_Mal[c]:O#2,M_Fum[c]:O#4=M_Mal[c]:O#3,M_H2O[c]:O#1=M_Mal[c]:O#1

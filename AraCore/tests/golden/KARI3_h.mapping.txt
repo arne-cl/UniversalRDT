@@ -1,0 +1,1 @@
+M_AL[h]:O#2=M_HMOB[h]:O#2,M_AL[h]:C#4=M_HMOB[h]:C#4,M_AL[h]:O#3=M_HMOB[h]:O#3,M_AL[h]:C#5=M_HMOB[h]:C#3,M_AL[h]:O#4=M_HMOB[h]:O#1,M_AL[h]:C#3=M_HMOB[h]:C#5,M_AL[h]:O#1=M_HMOB[h]:O#4,M_AL[h]:C#1=M_HMOB[h]:C#1,M_AL[h]:C#2=M_HMOB[h]:C#2

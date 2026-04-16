@@ -1,0 +1,1 @@
+M_Asn[c]:O#2=M_Asn[p]:O#2,M_Asn[c]:C#4=M_Asn[p]:C#4,M_Asn[c]:O#3=M_Asn[p]:O#3,M_Asn[c]:C#2=M_Asn[p]:C#2,M_Asn[c]:N#1=M_Asn[p]:N#1,M_Asn[c]:C#1=M_Asn[p]:C#1,M_Asn[c]:C#3=M_Asn[p]:C#3,M_Asn[c]:O#1=M_Asn[p]:O#1,M_Asn[c]:N#2=M_Asn[p]:N#2

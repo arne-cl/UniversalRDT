@@ -1,0 +1,1 @@
+M_SO3[h]:O#1=M_H2O[h]:O#1,M_SO3[h]:S#1=M_H2S[h]:S#1,M_SO3[h]:O#2=M_H2O[h]:O#1,M_SO3[h]:O#3=M_H2O[h]:O#1

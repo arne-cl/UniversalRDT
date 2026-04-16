@@ -1,0 +1,1 @@
+M_cACN[m]:O#1=M_iCit[m]:O#6,M_cACN[m]:C#4=M_iCit[m]:C#6,M_cACN[m]:O#2=M_iCit[m]:O#7,M_cACN[m]:C#1=M_iCit[m]:C#4,M_cACN[m]:C#3=M_iCit[m]:C#2,M_cACN[m]:C#6=M_iCit[m]:C#5,M_cACN[m]:O#5=M_iCit[m]:O#4,M_cACN[m]:O#6=M_iCit[m]:O#5,M_cACN[m]:C#2=M_iCit[m]:C#1,M_cACN[m]:C#5=M_iCit[m]:C#3,M_cACN[m]:O#3=M_iCit[m]:O#1,M_cACN[m]:O#4=M_iCit[m]:O#2,M_H2O[m]:O#1=M_iCit[m]:O#3

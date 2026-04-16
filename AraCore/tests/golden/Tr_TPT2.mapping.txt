@@ -1,0 +1,1 @@
+M_GAP[h]:O#1=M_GAP[c]:O#1,M_GAP[h]:C#1=M_GAP[c]:C#1,M_GAP[h]:C#3=M_GAP[c]:C#3,M_GAP[h]:O#2=M_GAP[c]:O#2,M_GAP[h]:C#2=M_GAP[c]:C#2,M_GAP[h]:O#6=M_GAP[c]:O#6,M_GAP[h]:P#1=M_GAP[c]:P#1,M_GAP[h]:O#3=M_GAP[c]:O#3,M_GAP[h]:O#4=M_GAP[c]:O#4,M_GAP[h]:O#5=M_GAP[c]:O#5,M_Pi[c]:O#1=M_Pi[h]:O#1,M_Pi[c]:P#1=M_Pi[h]:P#1,M_Pi[c]:O#2=M_Pi[h]:O#2,M_Pi[c]:O#3=M_Pi[h]:O#3,M_Pi[c]:O#4=M_Pi[h]:O#4

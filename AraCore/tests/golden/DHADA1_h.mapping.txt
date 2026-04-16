@@ -1,0 +1,1 @@
+M_DHMP[h]:O#2=M_MOP[h]:O#2,M_DHMP[h]:C#5=M_MOP[h]:C#6,M_DHMP[h]:O#3=M_MOP[h]:O#3,M_DHMP[h]:C#4=M_MOP[h]:C#5,M_DHMP[h]:O#1=M_MOP[h]:O#1,M_DHMP[h]:C#6=M_MOP[h]:C#4,M_DHMP[h]:O#4=M_H2O[h]:O#1,M_DHMP[h]:C#2=M_MOP[h]:C#2,M_DHMP[h]:C#3=M_MOP[h]:C#3,M_DHMP[h]:C#1=M_MOP[h]:C#1

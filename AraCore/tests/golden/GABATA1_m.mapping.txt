@@ -1,0 +1,1 @@
+M_GABA[m]:O#1=M_SCA-SeA[m]:O#3,M_GABA[m]:C#4=M_SCA-SeA[m]:C#4,M_GABA[m]:O#2=M_SCA-SeA[m]:O#2,M_GABA[m]:C#2=M_SCA-SeA[m]:C#2,M_GABA[m]:C#1=M_SCA-SeA[m]:C#1,M_GABA[m]:C#3=M_SCA-SeA[m]:C#3,M_GABA[m]:N#1=M_Ala[m]:N#1,M_Pyr[m]:O#2=M_Ala[m]:O#2,M_Pyr[m]:C#3=M_Ala[m]:C#3,M_Pyr[m]:O#3=M_Ala[m]:O#1,M_Pyr[m]:C#2=M_Ala[m]:C#2,M_Pyr[m]:O#1=M_SCA-SeA[m]:O#1,M_Pyr[m]:C#1=M_Ala[m]:C#1

@@ -1,0 +1,1 @@
+M_Rib[c]:O#1=M_Rib[h]:O#1,M_Rib[c]:C#1=M_Rib[h]:C#1,M_Rib[c]:C#2=M_Rib[h]:C#2,M_Rib[c]:O#5=M_Rib[h]:O#5,M_Rib[c]:C#5=M_Rib[h]:C#5,M_Rib[c]:O#4=M_Rib[h]:O#4,M_Rib[c]:C#4=M_Rib[h]:C#4,M_Rib[c]:O#3=M_Rib[h]:O#3,M_Rib[c]:C#3=M_Rib[h]:C#3,M_Rib[c]:O#2=M_Rib[h]:O#2

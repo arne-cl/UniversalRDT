@@ -1,0 +1,1 @@
+M_DAP[h]:O#1=M_mDAP[h]:O#1,M_DAP[h]:C#6=M_mDAP[h]:C#6,M_DAP[h]:O#2=M_mDAP[h]:O#2,M_DAP[h]:C#4=M_mDAP[h]:C#4,M_DAP[h]:N#1=M_mDAP[h]:N#1,M_DAP[h]:C#2=M_mDAP[h]:C#2,M_DAP[h]:C#1=M_mDAP[h]:C#1,M_DAP[h]:C#3=M_mDAP[h]:C#3,M_DAP[h]:C#5=M_mDAP[h]:C#5,M_DAP[h]:C#7=M_mDAP[h]:C#7,M_DAP[h]:O#3=M_mDAP[h]:O#3,M_DAP[h]:O#4=M_mDAP[h]:O#4,M_DAP[h]:N#2=M_mDAP[h]:N#2

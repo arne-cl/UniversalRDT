@@ -1,0 +1,1 @@
+M_Ser[p]:O#2=M_Gly[p]:O#1,M_Ser[p]:C#3=M_Gly[p]:C#2,M_Ser[p]:O#3=M_Gly[p]:O#2,M_Ser[p]:C#2=M_Gly[p]:C#1,M_Ser[p]:N#1=M_Gly[p]:N#1,M_Ser[p]:C#1=M_HPR[p]:C#1,M_Ser[p]:O#1=M_HPR[p]:O#1,M_GLX[p]:O#1=M_HPR[p]:O#2,M_GLX[p]:C#1=M_HPR[p]:C#2,M_GLX[p]:C#2=M_HPR[p]:C#3,M_GLX[p]:O#2=M_HPR[p]:O#4,M_GLX[p]:O#3=M_HPR[p]:O#3

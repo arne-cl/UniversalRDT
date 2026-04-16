@@ -1,0 +1,1 @@
+M_CO2[c]:O#1=M_HCO3[c]:O#1,M_CO2[c]:C#1=M_HCO3[c]:C#1,M_CO2[c]:O#2=M_HCO3[c]:O#2,M_H2O[c]:O#1=M_HCO3[c]:O#3

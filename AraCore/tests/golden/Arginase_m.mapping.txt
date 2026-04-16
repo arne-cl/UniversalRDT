@@ -1,0 +1,1 @@
+M_Arg[m]:O#1=M_Orn[m]:O#1,M_Arg[m]:C#5=M_Orn[m]:C#5,M_Arg[m]:O#2=M_Orn[m]:O#2,M_Arg[m]:C#4=M_Orn[m]:C#4,M_Arg[m]:N#1=M_Orn[m]:N#2,M_Arg[m]:C#2=M_Orn[m]:C#2,M_Arg[m]:C#1=M_Orn[m]:C#1,M_Arg[m]:C#3=M_Orn[m]:C#3,M_Arg[m]:N#4=M_Orn[m]:N#1,M_Arg[m]:C#6=M_urea[m]:C#1,M_Arg[m]:N#2=M_urea[m]:N#1,M_Arg[m]:N#3=M_urea[m]:N#2,M_H2O[m]:O#1=M_urea[m]:O#1

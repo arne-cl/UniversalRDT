@@ -1,0 +1,1 @@
+M_Glc[h]:O#1=M_Glc[c]:O#1,M_Glc[h]:C#1=M_Glc[c]:C#1,M_Glc[h]:C#2=M_Glc[c]:C#2,M_Glc[h]:O#6=M_Glc[c]:O#6,M_Glc[h]:C#6=M_Glc[c]:C#6,M_Glc[h]:O#5=M_Glc[c]:O#5,M_Glc[h]:C#5=M_Glc[c]:C#5,M_Glc[h]:O#4=M_Glc[c]:O#4,M_Glc[h]:C#4=M_Glc[c]:C#4,M_Glc[h]:O#3=M_Glc[c]:O#3,M_Glc[h]:C#3=M_Glc[c]:C#3,M_Glc[h]:O#2=M_Glc[c]:O#2

@@ -1,0 +1,1 @@
+M_Glu[h]:O#1=M_KG[h]:O#4,M_Glu[h]:C#4=M_KG[h]:C#5,M_Glu[h]:O#2=M_KG[h]:O#5,M_Glu[h]:C#2=M_KG[h]:C#3,M_Glu[h]:C#1=M_KG[h]:C#1,M_Glu[h]:C#3=M_KG[h]:C#2,M_Glu[h]:C#5=M_KG[h]:C#4,M_Glu[h]:O#3=M_KG[h]:O#3,M_Glu[h]:O#4=M_KG[h]:O#2,M_Glu[h]:N#1=M_Gly[h]:N#1,M_GLX[h]:O#1=M_KG[h]:O#1,M_GLX[h]:C#1=M_Gly[h]:C#1,M_GLX[h]:C#2=M_Gly[h]:C#2,M_GLX[h]:O#2=M_Gly[h]:O#2,M_GLX[h]:O#3=M_Gly[h]:O#1

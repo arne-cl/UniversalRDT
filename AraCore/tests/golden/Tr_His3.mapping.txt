@@ -1,0 +1,1 @@
+M_His[c]:O#1=M_His[m]:O#1,M_His[c]:C#6=M_His[m]:C#6,M_His[c]:O#2=M_His[m]:O#2,M_His[c]:C#5=M_His[m]:C#5,M_His[c]:N#1=M_His[m]:N#1,M_His[c]:C#1=M_His[m]:C#1,M_His[c]:C#4=M_His[m]:C#4,M_His[c]:N#3=M_His[m]:N#3,M_His[c]:C#3=M_His[m]:C#3,M_His[c]:N#2=M_His[m]:N#2,M_His[c]:C#2=M_His[m]:C#2

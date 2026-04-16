@@ -1,0 +1,1 @@
+M_Asp[c]:O#1=M_Asp[p]:O#1,M_Asp[c]:C#3=M_Asp[p]:C#3,M_Asp[c]:O#2=M_Asp[p]:O#2,M_Asp[c]:C#1=M_Asp[p]:C#1,M_Asp[c]:C#2=M_Asp[p]:C#2,M_Asp[c]:C#4=M_Asp[p]:C#4,M_Asp[c]:O#3=M_Asp[p]:O#3,M_Asp[c]:O#4=M_Asp[p]:O#4,M_Asp[c]:N#1=M_Asp[p]:N#1

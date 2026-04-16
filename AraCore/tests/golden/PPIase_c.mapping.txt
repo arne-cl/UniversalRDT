@@ -1,0 +1,1 @@
+M_PPi[c]:O#1=M_Pi[c]:O#1,M_PPi[c]:P#1=M_Pi[c]:P#1,M_PPi[c]:O#2=M_Pi[c]:O#2,M_PPi[c]:O#3=M_Pi[c]:O#3,M_PPi[c]:O#7=M_Pi[c]:O#1,M_PPi[c]:P#2=M_Pi[c]:P#1,M_PPi[c]:O#4=M_Pi[c]:O#2,M_PPi[c]:O#5=M_Pi[c]:O#3,M_PPi[c]:O#6=M_Pi[c]:O#4,M_H2O[c]:O#1=M_Pi[c]:O#4

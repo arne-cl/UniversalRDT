@@ -1,0 +1,1 @@
+M_A-Ser[c]:O#1=M_AC[c]:O#1,M_A-Ser[c]:C#3=M_AC[c]:C#2,M_A-Ser[c]:O#4=M_AC[c]:O#2,M_A-Ser[c]:C#2=M_Cys[c]:C#1,M_A-Ser[c]:C#4=M_Cys[c]:C#2,M_A-Ser[c]:C#5=M_Cys[c]:C#3,M_A-Ser[c]:O#2=M_Cys[c]:O#1,M_A-Ser[c]:O#3=M_Cys[c]:O#2,M_A-Ser[c]:N#1=M_Cys[c]:N#1,M_A-Ser[c]:C#1=M_AC[c]:C#1,M_H2S[c]:S#1=M_Cys[c]:S#1

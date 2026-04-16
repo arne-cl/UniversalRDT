@@ -1,0 +1,1 @@
+M_Ala[h]:O#1=M_Ala[c]:O#1,M_Ala[h]:C#3=M_Ala[c]:C#3,M_Ala[h]:O#2=M_Ala[c]:O#2,M_Ala[h]:C#2=M_Ala[c]:C#2,M_Ala[h]:C#1=M_Ala[c]:C#1,M_Ala[h]:N#1=M_Ala[c]:N#1

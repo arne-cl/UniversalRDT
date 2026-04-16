@@ -1,0 +1,1 @@
+M_Lys[c]:O#1=M_Lys[p]:O#1,M_Lys[c]:C#6=M_Lys[p]:C#6,M_Lys[c]:O#2=M_Lys[p]:O#2,M_Lys[c]:C#5=M_Lys[p]:C#5,M_Lys[c]:N#2=M_Lys[p]:N#2,M_Lys[c]:C#3=M_Lys[p]:C#3,M_Lys[c]:C#1=M_Lys[p]:C#1,M_Lys[c]:C#2=M_Lys[p]:C#2,M_Lys[c]:C#4=M_Lys[p]:C#4,M_Lys[c]:N#1=M_Lys[p]:N#1

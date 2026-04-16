@@ -1,0 +1,1 @@
+M_Glu-SeA[m]:O#1=M_H2O[m]:O#1,M_Glu-SeA[m]:C#3=M_P5C[m]:C#3,M_Glu-SeA[m]:C#1=M_P5C[m]:C#1,M_Glu-SeA[m]:C#2=M_P5C[m]:C#2,M_Glu-SeA[m]:C#4=M_P5C[m]:C#4,M_Glu-SeA[m]:C#5=M_P5C[m]:C#5,M_Glu-SeA[m]:O#2=M_P5C[m]:O#1,M_Glu-SeA[m]:O#3=M_P5C[m]:O#2,M_Glu-SeA[m]:N#1=M_P5C[m]:N#1

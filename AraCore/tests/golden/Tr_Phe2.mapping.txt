@@ -1,0 +1,1 @@
+M_Phe[h]:O#1=M_Phe[c]:O#1,M_Phe[h]:C#9=M_Phe[c]:C#9,M_Phe[h]:O#2=M_Phe[c]:O#2,M_Phe[h]:C#8=M_Phe[c]:C#8,M_Phe[h]:N#1=M_Phe[c]:N#1,M_Phe[h]:C#6=M_Phe[c]:C#6,M_Phe[h]:C#7=M_Phe[c]:C#7,M_Phe[h]:C#4=M_Phe[c]:C#4,M_Phe[h]:C#2=M_Phe[c]:C#2,M_Phe[h]:C#1=M_Phe[c]:C#1,M_Phe[h]:C#3=M_Phe[c]:C#3,M_Phe[h]:C#5=M_Phe[c]:C#5

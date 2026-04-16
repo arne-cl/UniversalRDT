@@ -1,0 +1,1 @@
+M_Thr[c]:O#2=M_Gly[c]:O#1,M_Thr[c]:C#4=M_Gly[c]:C#2,M_Thr[c]:O#3=M_Gly[c]:O#2,M_Thr[c]:C#3=M_Gly[c]:C#1,M_Thr[c]:N#1=M_Gly[c]:N#1,M_Thr[c]:C#2=M_ACD[c]:C#2,M_Thr[c]:O#1=M_ACD[c]:O#1,M_Thr[c]:C#1=M_ACD[c]:C#1

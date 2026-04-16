@@ -1,0 +1,1 @@
+M_GABA[c]:O#1=M_GABA[m]:O#1,M_GABA[c]:C#4=M_GABA[m]:C#4,M_GABA[c]:O#2=M_GABA[m]:O#2,M_GABA[c]:C#2=M_GABA[m]:C#2,M_GABA[c]:C#1=M_GABA[m]:C#1,M_GABA[c]:C#3=M_GABA[m]:C#3,M_GABA[c]:N#1=M_GABA[m]:N#1

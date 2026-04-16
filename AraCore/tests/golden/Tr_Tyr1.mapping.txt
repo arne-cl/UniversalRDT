@@ -1,0 +1,1 @@
+M_Tyr[c]:O#2=M_Tyr[p]:O#2,M_Tyr[c]:C#9=M_Tyr[p]:C#9,M_Tyr[c]:O#3=M_Tyr[p]:O#3,M_Tyr[c]:C#8=M_Tyr[p]:C#8,M_Tyr[c]:N#1=M_Tyr[p]:N#1,M_Tyr[c]:C#5=M_Tyr[p]:C#5,M_Tyr[c]:C#6=M_Tyr[p]:C#6,M_Tyr[c]:C#1=M_Tyr[p]:C#1,M_Tyr[c]:C#3=M_Tyr[p]:C#3,M_Tyr[c]:C#7=M_Tyr[p]:C#7,M_Tyr[c]:O#1=M_Tyr[p]:O#1,M_Tyr[c]:C#4=M_Tyr[p]:C#4,M_Tyr[c]:C#2=M_Tyr[p]:C#2

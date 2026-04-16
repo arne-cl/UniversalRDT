@@ -1,0 +1,1 @@
+M_Leu[h]:O#1=M_Leu[c]:O#1,M_Leu[h]:C#6=M_Leu[c]:C#6,M_Leu[h]:O#2=M_Leu[c]:O#2,M_Leu[h]:C#5=M_Leu[c]:C#5,M_Leu[h]:N#1=M_Leu[c]:N#1,M_Leu[h]:C#3=M_Leu[c]:C#3,M_Leu[h]:C#4=M_Leu[c]:C#4,M_Leu[h]:C#1=M_Leu[c]:C#1,M_Leu[h]:C#2=M_Leu[c]:C#2

@@ -1,0 +1,1 @@
+M_SO4[c]:O#1=M_SO4[h]:O#1,M_SO4[c]:S#1=M_SO4[h]:S#1,M_SO4[c]:O#2=M_SO4[h]:O#2,M_SO4[c]:O#3=M_SO4[h]:O#3,M_SO4[c]:O#4=M_SO4[h]:O#4

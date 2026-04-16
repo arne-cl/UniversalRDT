@@ -1,0 +1,1 @@
+M_Pyr[c]:O#2=M_Pyr[m]:O#2,M_Pyr[c]:C#3=M_Pyr[m]:C#3,M_Pyr[c]:O#3=M_Pyr[m]:O#3,M_Pyr[c]:C#2=M_Pyr[m]:C#2,M_Pyr[c]:O#1=M_Pyr[m]:O#1,M_Pyr[c]:C#1=M_Pyr[m]:C#1

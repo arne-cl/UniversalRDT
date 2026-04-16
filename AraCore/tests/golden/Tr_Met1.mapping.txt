@@ -1,0 +1,1 @@
+M_Met[c]:O#1=M_Met[p]:O#1,M_Met[c]:C#5=M_Met[p]:C#5,M_Met[c]:O#2=M_Met[p]:O#2,M_Met[c]:C#4=M_Met[p]:C#4,M_Met[c]:N#1=M_Met[p]:N#1,M_Met[c]:C#2=M_Met[p]:C#2,M_Met[c]:C#3=M_Met[p]:C#3,M_Met[c]:S#1=M_Met[p]:S#1,M_Met[c]:C#1=M_Met[p]:C#1
