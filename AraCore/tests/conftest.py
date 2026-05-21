@@ -1,17 +1,36 @@
+import shutil
+import zipfile
 from pathlib import Path
 
 import pytest
 
-ARAcore_DIR = Path(__file__).resolve().parent.parent
-REACTIONS_DIR = ARAcore_DIR / "reaction_intermediates"
+ARACORE_DIR = Path(__file__).resolve().parent.parent
+REACTIONS_ZIP = ARACORE_DIR / "reaction_intermediates.zip"
+REACTIONS_DIR = ARACORE_DIR / "reaction_intermediates"
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
 
 SAMPLE_RXN = "FBPA_h"
 
 
+def _extract_rxn_from_zip(rxn_name, dest_dir):
+    prefix = f"reaction_intermediates/{rxn_name}/"
+    with zipfile.ZipFile(REACTIONS_ZIP, "r") as z:
+        for name in z.namelist():
+            if name.startswith(prefix):
+                z.extract(name, dest_dir)
+    return dest_dir / "reaction_intermediates" / rxn_name
+
+
+def _strip_generated_files(rxn_dir):
+    for pattern in ["mapping*", "MOL_*.mdl", "MOL_*.inchi",
+                    "MOL_*.inchikey", "MOL_*.rdt_index", "MOL_*.species_id"]:
+        for f in rxn_dir.glob(pattern):
+            f.unlink()
+
+
 @pytest.fixture
 def aracore_dir():
-    return ARAcore_DIR
+    return ARACORE_DIR
 
 
 @pytest.fixture
@@ -25,8 +44,8 @@ def golden_dir():
 
 
 @pytest.fixture
-def sample_rxn_dir():
-    return REACTIONS_DIR / SAMPLE_RXN
+def sample_rxn_dir(tmp_path):
+    return _extract_rxn_from_zip(SAMPLE_RXN, tmp_path)
 
 
 @pytest.fixture
