@@ -111,6 +111,193 @@ def test_postprocess_reaction_is_deterministic(tmp_path):
     assert len(outputs) == 1
 
 
+def _bash_pipeline_assemble(mapping_lines_text):
+    """Reproduce bash: sort -n mapping_lines.txt | grep -v ':H#' | cut -f3 | tr '\\n' ' ' | sed 's/ //g; s/,$//'"""
+    lines = [l for l in mapping_lines_text.strip().split("\n") if l.strip()]
+    lines.sort(key=lambda l: int(l.split("\t")[0]))
+    parts = []
+    for line in lines:
+        if ":H#" in line:
+            continue
+        fields = line.split("\t")
+        if len(fields) >= 3:
+            parts.append(fields[2])
+    return "".join(parts).replace(" ", "").rstrip(",")
+
+
+class TestBashScriptBugs:
+    """Evidence that run_rdt.sh produces incorrect output, extracted from
+    the bash-produced files stored in reaction_intermediates.zip."""
+
+    def test_dpe12_mol02_empty_species_in_bash_output(self, tmp_path):
+        """Bash left DPE12_h MOL_02 (from-side) with an empty species_id.
+
+        MOL_02's InChIKey matches both M_Glc and M_starch1 in
+        species_id_inchikey.txt.  The multi-line lookup result caused the
+        subsequent grep against from_species_with_cmp to fail on the system
+        that produced the zip, resulting in an empty species_id.
+        """
+        rxn_dir = _extract_rxn_from_zip("DPE12_h", tmp_path)
+        mol02_species = (rxn_dir / "MOL_02.species_id").read_text().strip()
+        assert mol02_species == ""
+
+    def test_dpe12_mol04_filename_leaked_as_species(self, tmp_path):
+        """Bash embedded the literal grep target filename in DPE12_h MOL_04's species_id.
+
+        The species_id file contains 'to_species_with_cmp:M_Glc[h]' where
+        'to_species_with_cmp' is the FILENAME of the grep target, not a
+        species identifier.  A valid species has the form M_<name>[<cmp>].
+        """
+        rxn_dir = _extract_rxn_from_zip("DPE12_h", tmp_path)
+        mol04_species = (rxn_dir / "MOL_04.species_id").read_text().strip()
+        assert "to_species_with_cmp" in mol04_species, (
+            f"Expected filename leak, got: {mol04_species!r}"
+        )
+
+    def test_dpe12_bash_mapping_has_empty_species_and_filename(self, tmp_path):
+        """The bash-produced mapping.txt for DPE12_h contains empty species
+        names and a literal filename as species — both self-evidently broken."""
+        rxn_dir = _extract_rxn_from_zip("DPE12_h", tmp_path)
+        mapping = (rxn_dir / "mapping.txt").read_text()
+        assert ":O#1=" in mapping or ":C#1=" in mapping, (
+            "Bash mapping should have entries with empty species (e.g. ':C#1=')"
+        )
+        assert "to_species_with_cmp" in mapping, (
+            "Bash mapping should contain the filename 'to_species_with_cmp'"
+        )
+
+    def test_dpe12_correct_species_exists_for_mol02(self, tmp_path):
+        """MOL_02 SHOULD map to M_starch1[h] — it is present in
+        from_species_with_cmp and M_starch1 is a valid InChIKey match."""
+        rxn_dir = _extract_rxn_from_zip("DPE12_h", tmp_path)
+        inchikey = (rxn_dir / "MOL_02.inchikey").read_text().strip()
+        species_table = run_rdt.load_inchikey_table(
+            (rxn_dir / "species_id_inchikey.txt").read_text()
+        )
+        from_species = (rxn_dir / "from_species_with_cmp").read_text().strip().splitlines()
+
+        matches = run_rdt.lookup_species(inchikey, species_table)
+        assert "M_starch1" in matches
+        assert any("M_starch1" in f for f in from_species)
+
+    def test_dpe12_correct_species_exists_for_mol04(self, tmp_path):
+        """MOL_04 SHOULD map to M_Glc[h] — it is present in
+        to_species_with_cmp and M_Glc is a valid InChIKey match."""
+        rxn_dir = _extract_rxn_from_zip("DPE12_h", tmp_path)
+        inchikey = (rxn_dir / "MOL_04.inchikey").read_text().strip()
+        species_table = run_rdt.load_inchikey_table(
+            (rxn_dir / "species_id_inchikey.txt").read_text()
+        )
+        to_species = (rxn_dir / "to_species_with_cmp").read_text().strip().splitlines()
+
+        matches = run_rdt.lookup_species(inchikey, species_table)
+        assert "M_Glc" in matches
+        assert any("M_Glc" in f for f in to_species)
+
+    def test_dpe12_python_produces_valid_species(self, tmp_path):
+        """Python correctly identifies M_starch1[h] and M_Glc[h] for DPE12_h,
+        producing valid species names without empty entries or filename leaks.
+
+        Every entry in the mapping must start with a species name (M_...),
+        never with a bare ':element' or a filename like 'to_species_with_cmp'.
+        """
+        import re
+        rxn_dir = _extract_rxn_from_zip("DPE12_h", tmp_path)
+        _strip_generated_files(rxn_dir)
+        run_rdt.postprocess_reaction(rxn_dir)
+        mapping = (rxn_dir / "mapping.txt").read_text()
+
+        entries = re.split(r'[,]', mapping)
+        for entry in entries:
+            from_to = entry.split("=")
+            for side in from_to:
+                if not side:
+                    continue
+                assert side.startswith("M_"), (
+                    f"Expected species to start with 'M_', got: {side!r} "
+                    f"in entry {entry!r}"
+                )
+
+        assert "to_species_with_cmp" not in mapping
+        assert "M_starch1[h]" in mapping
+        assert "M_Glc[h]" in mapping
+
+    def test_ornata_mapping_lines_has_substring_false_positive(self, tmp_path):
+        """Bash grep 'M_Glu' against to_species_with_cmp matched BOTH
+        M_Glu[m] and M_Glu-SeA[m] — a substring false positive.
+
+        The mapping_lines.txt records 'M_Glu[m] M_Glu-SeA[m]' as the
+        species for MOL_03, but M_Glu and M_Glu-SeA are different species.
+        """
+        rxn_dir = _extract_rxn_from_zip("OrnAT_m", tmp_path)
+        mapping_lines = (rxn_dir / "mapping_lines.txt").read_text()
+        assert "M_Glu[m] M_Glu-SeA[m]" in mapping_lines
+
+    def test_ornata_mol03_inchikey_matches_only_m_glu(self, tmp_path):
+        """MOL_03's InChIKey matches ONLY M_Glu (not M_Glu-SeA) in the
+        species table — the bash grep substring match was a false positive."""
+        rxn_dir = _extract_rxn_from_zip("OrnAT_m", tmp_path)
+        inchikey = (rxn_dir / "MOL_03.inchikey").read_text().strip()
+        species_table = run_rdt.load_inchikey_table(
+            (rxn_dir / "species_id_inchikey.txt").read_text()
+        )
+        matches = run_rdt.lookup_species(inchikey, species_table)
+        assert matches == ["M_Glu"], (
+            f"InChIKey {inchikey} should match only M_Glu, got: {matches}"
+        )
+
+    def test_ornata_mapping_txt_inconsistent_with_mapping_lines(self, tmp_path):
+        """OrnAT_m's mapping.txt CANNOT be derived from its mapping_lines.txt
+        via the bash pipeline. The zip contains inconsistent data from mixed
+        sources — the mapping_lines.txt has the multi-species grep result,
+        but mapping.txt was apparently regenerated separately."""
+        rxn_dir = _extract_rxn_from_zip("OrnAT_m", tmp_path)
+        mapping_txt = (rxn_dir / "mapping.txt").read_text()
+        mapping_lines = (rxn_dir / "mapping_lines.txt").read_text()
+        reconstructed = _bash_pipeline_assemble(mapping_lines)
+        assert reconstructed != mapping_txt
+
+    def test_ornata_bash_pipeline_produces_concatenated_species(self, tmp_path):
+        """When the bash assembly pipeline is applied to OrnAT_m's
+        mapping_lines.txt, the space-stripping step concatenates the two
+        species names into the invalid string 'M_Glu[m]M_Glu-SeA[m]'."""
+        rxn_dir = _extract_rxn_from_zip("OrnAT_m", tmp_path)
+        mapping_lines = (rxn_dir / "mapping_lines.txt").read_text()
+        reconstructed = _bash_pipeline_assemble(mapping_lines)
+        assert "M_Glu[m]M_Glu-SeA[m]" in reconstructed, (
+            "Bash pipeline concatenates multi-match species after space removal"
+        )
+
+    def test_grep_substring_false_positive(self, tmp_path):
+        """Running actual grep 'M_Glu' against a file containing both
+        M_Glu[m] and M_Glu-SeA[m] matches BOTH lines.
+
+        This is the root cause of the OrnAT_m bug: grep uses substring
+        matching, so M_Glu matches the unrelated species M_Glu-SeA.
+        """
+        species_file = tmp_path / "to_species_with_cmp"
+        species_file.write_text("M_Glu[m]\nM_Glu-SeA[m]\n")
+        result = subprocess.run(
+            ["grep", "M_Glu", str(species_file)],
+            capture_output=True, text=True,
+        )
+        matches = result.stdout.strip().splitlines()
+        assert "M_Glu[m]" in matches
+        assert "M_Glu-SeA[m]" in matches, (
+            f"grep 'M_Glu' falsely matches M_Glu-SeA[m] — "
+            f"all matches: {matches}"
+        )
+
+    def test_exact_prefix_match_avoids_false_positive(self, tmp_path):
+        """Exact prefix matching (what the script SHOULD do) matches only
+        M_Glu[m], not M_Glu-SeA[m]."""
+        species_list = ["M_Glu[m]", "M_Glu-SeA[m]"]
+        exact_matches = [
+            s for s in species_list if s.split("[")[0] == "M_Glu"
+        ]
+        assert exact_matches == ["M_Glu[m]"]
+
+
 @pytest.mark.integration
 def test_rdt_non_determinism_diagnostic(tmp_path):
     if not RDT_JAR.exists():
