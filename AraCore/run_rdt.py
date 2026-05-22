@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from unite_mappings import _resolve_reactions_dir
+
 
 def parse_rxn_header(rxn_text: str) -> Tuple[int, int]:
     """Extract the number of reactant and product molecules from an MDL RXN header.
@@ -549,8 +551,8 @@ def main():
     parser.add_argument(
         "--reactions-dir",
         type=Path,
-        default=Path("reaction_intermediates"),
-        help="Directory containing reaction subfolders",
+        default=Path("reaction_intermediates.zip"),
+        help="Directory or .zip archive containing reaction subfolders",
     )
     parser.add_argument(
         "--postprocess-only",
@@ -560,7 +562,7 @@ def main():
     args = parser.parse_args()
 
     rdt_jar = args.rdt_jar
-    reactions_dir = args.reactions_dir
+    reactions_dir = _resolve_reactions_dir(args.reactions_dir)
 
     rxn_folders = sorted(reactions_dir.iterdir())
     total = len(rxn_folders)
