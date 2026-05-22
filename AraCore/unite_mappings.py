@@ -7,6 +7,8 @@ produces nitrogen-specific statistics (counts, histograms).
 import argparse
 import locale
 import sys
+import tempfile
+import zipfile
 from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -170,19 +172,41 @@ def count_atoms(atoms: List[str], unique: bool = False) -> str:
     return "\n".join(result_lines) + "\n" if result_lines else ""
 
 
+def _resolve_reactions_dir(reactions_dir: Path) -> Path:
+    """Return a directory path for *reactions_dir*, extracting from zip if needed."""
+    reactions_dir = Path(reactions_dir)
+    if reactions_dir.is_dir():
+        return reactions_dir
+    if reactions_dir.is_file() and reactions_dir.suffix == ".zip":
+        tmp = tempfile.TemporaryDirectory(prefix="reaction_intermediates_")
+        with zipfile.ZipFile(reactions_dir) as zf:
+            zf.extractall(tmp.name)
+        top = Path(tmp.name)
+        entries = [p for p in top.iterdir() if p.is_dir()]
+        if len(entries) == 1:
+            subdir = entries[0]
+            if subdir.name == reactions_dir.stem:
+                tmp_name = tmp.name
+                tmp._finalizer.detach()
+                return subdir
+        return top
+    raise FileNotFoundError(reactions_dir)
+
+
 def unite_mappings(reactions_dir: Path, output_dir: Path) -> None:
     """Run the full unite_mappings pipeline and write all output files.
 
     Replaces the complete ``unite_mappings.sh`` script.
 
     Args:
-        reactions_dir: Path to ``reaction_intermediates/``.
+        reactions_dir: Path to ``reaction_intermediates/`` directory or ``.zip`` archive.
         output_dir: Directory where output files are written.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    all_lines, _ = collect_all_mappings(reactions_dir)
+    resolved = _resolve_reactions_dir(reactions_dir)
+    all_lines, _ = collect_all_mappings(resolved)
 
     all_mapping_path = output_dir / "all_mapping.txt"
     all_mapping_path.write_text("\n".join(all_lines) + "\n" if all_lines else "")

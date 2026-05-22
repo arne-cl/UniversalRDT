@@ -8,7 +8,7 @@ GOLDEN_UNITE_DIR = (
 GOLDEN_DIR = __import__("pathlib").Path(__file__).resolve().parent / "golden"
 REACTIONS_DIR = (
     __import__("pathlib").Path(__file__).resolve().parent.parent
-    / "reaction_intermediates"
+    / "reaction_intermediates.zip"
 )
 
 
