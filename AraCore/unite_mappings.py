@@ -239,14 +239,15 @@ def unite_mappings(reactions_dir: Path, output_dir: Path) -> None:
 
 def main():
     """CLI entry point: run the unite_mappings pipeline."""
+    _script_dir = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Combine per-reaction atom mappings into global tables"
     )
     parser.add_argument(
         "--reactions-dir",
         type=Path,
-        default=Path("reaction_intermediates"),
-        help="Directory containing reaction subfolders",
+        default=_script_dir / "reaction_intermediates.zip",
+        help="Directory or .zip archive containing reaction subfolders",
     )
     parser.add_argument(
         "--output-dir",

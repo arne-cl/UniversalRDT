@@ -537,6 +537,7 @@ def main():
     * ``--postprocess-only``: skip the RDT step and re-derive mapping
       files from existing ``.rxn`` output.
     """
+    _script_dir = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Run RDT atom mapping pipeline for AraCore reactions"
     )
@@ -544,14 +545,15 @@ def main():
         "--rdt-jar",
         type=Path,
         default=Path(os.environ.get(
-            "RDT_JAR", "../../../rdt-2.5.0-SNAPSHOT-jar-with-dependencies.jar"
+            "RDT_JAR",
+            str(_script_dir.parent / "rdt-2.5.0-SNAPSHOT-jar-with-dependencies.jar"),
         )),
         help="Path to RDT JAR file",
     )
     parser.add_argument(
         "--reactions-dir",
         type=Path,
-        default=Path("reaction_intermediates.zip"),
+        default=_script_dir / "reaction_intermediates.zip",
         help="Directory or .zip archive containing reaction subfolders",
     )
     parser.add_argument(
@@ -561,7 +563,7 @@ def main():
     )
     args = parser.parse_args()
 
-    rdt_jar = args.rdt_jar
+    rdt_jar = args.rdt_jar.resolve()
     reactions_dir = _resolve_reactions_dir(args.reactions_dir)
 
     rxn_folders = sorted(reactions_dir.iterdir())
