@@ -304,9 +304,7 @@ def test_rdt_non_determinism_diagnostic(tmp_path):
         pytest.skip(f"RDT JAR not found at {RDT_JAR}")
 
     rxn_name = "AspAT_h"
-    rxn_dir = REACTIONS_DIR / rxn_name
-    if not rxn_dir.is_dir():
-        pytest.skip(f"{rxn_name} not in reaction_intermediates/ (run make prepare-aracore)")
+    rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path)
 
     smiles = (rxn_dir / "rxn.smiles").read_text().strip()
 
