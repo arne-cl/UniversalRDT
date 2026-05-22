@@ -14,18 +14,17 @@ from unite_mappings import _resolve_reactions_dir
 def parse_rxn_header(rxn_text: str) -> Tuple[int, int]:
     """Extract the number of reactant and product molecules from an MDL RXN header.
 
-    Replaces ``grep -m1 -B1 '$MOL' … | head -n 1`` combined with
-    ``head -c3`` / ``tail -c+4`` in the bash script.
+    Replaces `grep -m1 -B1 '$MOL' ... | head -n 1` combined with
+    `head -c3` / `tail -c+4` in the bash script.
 
     Args:
-        rxn_text: Full contents of an ``ECBLAST_smiles_AAM.rxn`` file.
+        rxn_text: Full contents of an `ECBLAST_smiles_AAM.rxn` file.
 
     Returns:
-        ``(from_num, to_num)`` — the count of reactant and product molecules.
+        `(from_num, to_num)`: the count of reactant and product molecules.
 
     Raises:
-        ValueError: If no ``$MOL`` marker is found or the header line
-            cannot be parsed.
+        ValueError: If no `$MOL` marker is found or the header line cannot be parsed.
     """
     mol_pos = rxn_text.find("$MOL")
     if mol_pos < 0:
@@ -45,12 +44,12 @@ def parse_rxn_header(rxn_text: str) -> Tuple[int, int]:
 def split_rxn_to_mols(rxn_text: str) -> List[str]:
     """Split an MDL RXN file into individual molecule blocks.
 
-    Replaces ``csplit -f MOL_ … '/$MOL/' {*}`` — each returned block
-    is the text between consecutive ``$MOL`` markers (the header line
-    ``M00001``, atom table, bonds, ``M  END``).
+    Replaces `csplit -f MOL_ ... '/$MOL/' {*}`: each returned block
+    is the text between consecutive `$MOL` markers (the header line
+    `M00001`, atom table, bonds, `M  END`).
 
     Args:
-        rxn_text: Full contents of an ``ECBLAST_smiles_AAM.rxn`` file.
+        rxn_text: Full contents of an `ECBLAST_smiles_AAM.rxn` file.
 
     Returns:
         List of molecule block strings (one per molecule in the reaction).
@@ -66,15 +65,15 @@ def split_rxn_to_mols(rxn_text: str) -> List[str]:
 
 
 def mol_block_to_mdl(mol_block: str) -> str:
-    """Convert a raw molecule block (after ``$MOL`` split) into MDL text.
+    """Convert a raw molecule block (after `$MOL` split) into MDL text.
 
-    In AraCore mode the ``M CHG`` lines are preserved (unlike the
+    In AraCore mode the `M CHG` lines are preserved (unlike the
     MetaCyc variant which strips them).  The function is essentially a
-    pass-through because ``split_rxn_to_mols`` already strips the
-    ``$MOL`` marker line.
+    pass-through because `split_rxn_to_mols` already strips the
+    `$MOL` marker line.
 
     Args:
-        mol_block: Text of one molecule block from :func:`split_rxn_to_mols`.
+        mol_block: Text of one molecule block from `split_rxn_to_mols`.
 
     Returns:
         MDL-format molecule text ready for obabel consumption.
@@ -85,15 +84,15 @@ def mol_block_to_mdl(mol_block: str) -> str:
 def parse_mdl_atom_table(mdl_text: str) -> List[Tuple[str, int]]:
     """Extract (element, rdt_atom_index) from V2000 atom lines in an MDL block.
 
-    Replaces ``awk '(NF==16){print $4"\\t"$14} (NF==15){print $4"\\t"(0+$13)}'``.
+    Replaces `awk '(NF==16){print $4"\\t"$14} (NF==15){print $4"\\t"(0+$13)}'`.
     Lines with 16 whitespace-separated fields carry the atom index in
     field 13 (0-based); lines with 15 fields use field 12 instead.
 
     Args:
-        mdl_text: MDL-format molecule text (as produced by :func:`mol_block_to_mdl`).
+        mdl_text: MDL-format molecule text (as produced by `mol_block_to_mdl`).
 
     Returns:
-        Ordered list of ``(element_symbol, global_atom_index)`` tuples,
+        Ordered list of `(element_symbol, global_atom_index)` tuples,
         one per atom in the molecule.
     """
     lines = mdl_text.split("\n")
@@ -113,18 +112,18 @@ def parse_mdl_atom_table(mdl_text: str) -> List[Tuple[str, int]]:
 
 
 def parse_inchi_atom_order(inchi_text: str) -> List[int]:
-    """Parse the InChI auxiliary ``/N:`` field to recover atom ordering.
+    """Parse the InChI auxiliary `/N:` field to recover atom ordering.
 
-    Replaces ``grep 'AuxInfo' … | sed 's/^.*\\/N://; s\\/.*$//; s/,/ /g'``.
-    The ``/N:`` field lists 1-based line numbers in the MDL atom table
+    Replaces `grep 'AuxInfo' ... | sed 's/^.*\\/N://; s\\/.*$//; s/,/ /g'`.
+    The `/N:` field lists 1-based line numbers in the MDL atom table
     that correspond to InChI's element-wise canonical ordering.
 
     Args:
-        inchi_text: Contents of a ``.inchi`` file (standard InChI + AuxInfo lines).
+        inchi_text: Contents of a `.inchi` file (standard InChI + AuxInfo lines).
 
     Returns:
         List of 1-based atom-table line numbers in InChI order.
-        Defaults to ``[1]`` when no ``/N:`` field is present (single atom).
+        Defaults to `[1]` when no `/N:` field is present (single atom).
     """
     for line in inchi_text.split("\n"):
         if "AuxInfo" in line and "/N:" in line:
@@ -136,18 +135,18 @@ def parse_inchi_atom_order(inchi_text: str) -> List[int]:
 
 
 def load_inchikey_table(text: str) -> list:
-    """Parse ``species_id_inchikey.txt`` into a lookup table.
+    """Parse `species_id_inchikey.txt` into a lookup table.
 
-    Each line is ``<species_id>\\t<inchikey>``.  The species ID may
-    contain ``_DASH_`` placeholders that are replaced with literal ``-``.
+    Each line is `<species_id>\\t<inchikey>`.  The species ID may
+    contain `_DASH_` placeholders that are replaced with literal `-`.
 
     Args:
-        text: Full contents of a ``species_id_inchikey.txt`` file.
+        text: Full contents of a `species_id_inchikey.txt` file.
 
     Returns:
-        List of ``(inchikey, species_id_without_compartment)`` tuples,
+        List of `(inchikey, species_id_without_compartment)` tuples,
         preserving insertion order so that first/last semantics match the
-        bash ``grep`` + ``cut`` pipeline.
+        bash `grep` + `cut` pipeline.
     """
     table = []
     for line in text.strip().split("\n"):
@@ -165,14 +164,14 @@ def load_inchikey_table(text: str) -> list:
 def lookup_species(inchikey: str, table: list) -> List[str]:
     """Look up species IDs by InChIKey with a 14-character prefix fallback.
 
-    Replaces the bash ``grep "$(cat …inchikey)" species_id_inchikey.txt``
-    exact match, followed by ``grep "$(head -c14 …inchikey)" …`` when
+    Replaces the bash `grep "$(cat ...inchikey)" species_id_inchikey.txt`
+    exact match, followed by `grep "$(head -c14 ...inchikey)" ...` when
     the exact match fails.  Multiple matches can occur when different
     species share the same connectivity hash (first 14 chars).
 
     Args:
         inchikey: InChIKey string (typically 27 characters).
-        table: Table from :func:`load_inchikey_table`.
+        table: Table from `load_inchikey_table`.
 
     Returns:
         List of matching species IDs (without compartment suffix).
@@ -194,7 +193,7 @@ def lookup_species(inchikey: str, table: list) -> List[str]:
 def load_species_list(text: str) -> List[str]:
     """Load a newline-separated list of species IDs (with compartment tags).
 
-    Used for ``from_species_with_cmp`` and ``to_species_with_cmp`` files.
+    Used for `from_species_with_cmp` and `to_species_with_cmp` files.
 
     Args:
         text: File contents with one species ID per line.
@@ -208,16 +207,16 @@ def load_species_list(text: str) -> List[str]:
 def find_species_with_cmp(species_no_cmp: str, cmp_list: List[str]) -> Optional[str]:
     """Find all compartmented species IDs that contain the given base ID.
 
-    Replaces ``grep "$species_id_without_cmp" from_species_with_cmp``.
+    Replaces `grep "$species_id_without_cmp" from_species_with_cmp`.
     Multiple matches are space-joined, mirroring the bash behaviour where
-    ``echo $(grep …)`` collapses newlines into spaces.
+    `echo $(grep ...)` collapses newlines into spaces.
 
     Args:
-        species_no_cmp: Species ID without compartment (e.g. ``"M_GAP"``).
-        cmp_list: Species IDs with compartment tags (e.g. ``["M_GAP[h]"]``).
+        species_no_cmp: Species ID without compartment (e.g. "M_GAP").
+        cmp_list: Species IDs with compartment tags (e.g. `["M_GAP[h]"]`).
 
     Returns:
-        Space-joined string of all matching entries, or ``None`` if no match.
+        Space-joined string of all matching entries, or `None` if no match.
     """
     matches = [entry for entry in cmp_list if species_no_cmp in entry]
     if matches:
@@ -228,9 +227,9 @@ def find_species_with_cmp(species_no_cmp: str, cmp_list: List[str]) -> Optional[
 def find_species_with_cmp_multi(species_ids: List[str], cmp_list: List[str]) -> Optional[str]:
     """Find compartmented species IDs matching any of several base IDs.
 
-    When ``lookup_species`` returns multiple candidates (e.g. both
-    ``M_Glc`` and ``M_starch1`` share the same InChIKey prefix), the
-    bash ``grep`` searches for all of them against the species list at
+    When `lookup_species` returns multiple candidates (e.g. both
+    `M_Glc` and `M_starch1` share the same InChIKey prefix), the
+    bash `grep` searches for all of them against the species list at
     once.  This function replicates that: it tries every candidate
     against the compartmented list and returns all unique hits.
 
@@ -239,7 +238,7 @@ def find_species_with_cmp_multi(species_ids: List[str], cmp_list: List[str]) -> 
         cmp_list: Species IDs with compartment tags.
 
     Returns:
-        Space-joined string of all unique matching entries, or ``None``.
+        Space-joined string of all unique matching entries, or `None`.
     """
     all_matches = []
     for sid in species_ids:
@@ -260,24 +259,24 @@ def build_mapping_lines(
     """Build individual mapping-line entries for one molecule.
 
     Walks the InChI atom order, tracks an element-wise counter (C#1,
-    C#2, …, N#1, …), and emits one tab-separated line per atom in the
+    C#2, ..., N#1, ...), and emits one tab-separated line per atom in the
     format::
 
         <rdt_atom_index>\\t<from|to>\\t<species>:<element>#<counter><separator>
 
-    where the separator is ``=`` for reactants (from-side) and ``,``
+    where the separator is `=` for reactants (from-side) and `,`
     for products (to-side).
 
-    Replaces the inner ``for rdt_line in $inchi_index`` loop in the
+    Replaces the inner `for rdt_line in $inchi_index` loop in the
     bash script.
 
     Args:
-        rdt_index: Per-atom ``(element, global_atom_index)`` from
-            :func:`parse_mdl_atom_table`.
+        rdt_index: Per-atom `(element, global_atom_index)` from
+            `parse_mdl_atom_table`.
         inchi_order: 1-based atom-table line numbers in InChI order,
-            from :func:`parse_inchi_atom_order`.
-        species_id: Compartmented species identifier (e.g. ``"M_GAP[h]"``).
-        side: ``"from"`` for reactants, ``"to"`` for products.
+            from `parse_inchi_atom_order`.
+        species_id: Compartmented species identifier (e.g. "M_GAP[h]").
+        side: "from" for reactants, "to" for products.
 
     Returns:
         List of formatted mapping-line strings.
@@ -299,21 +298,21 @@ def build_mapping_lines(
 
 
 def assemble_mapping(mapping_lines_text: str) -> str:
-    """Assemble the final ``mapping.txt`` content from individual lines.
+    """Assemble the final `mapping.txt` content from individual lines.
 
-    Replaces ``sort -n mapping_lines.txt | grep -v ':H#' | cut -f3 |
-    tr '\\n' ' ' | sed 's/ //g; s/,$//'``.  Lines are sorted
+    Replaces `sort -n mapping_lines.txt | grep -v ':H#' | cut -f3 |
+    tr '\\n' ' ' | sed 's/ //g; s/,$//'`.  Lines are sorted
     numerically by the first column (RDT atom index), hydrogen atoms
-    (``:H#``) are dropped, and the third column entries are concatenated
+    (`:H#`) are dropped, and the third column entries are concatenated
     into a single comma-separated string.
 
     Args:
         mapping_lines_text: Newline-separated mapping lines as produced
-            by :func:`build_mapping_lines`.
+            by `build_mapping_lines`.
 
     Returns:
         Single-line mapping string without trailing newline, e.g.
-        ``"M_GAP[h]:O#1=M_FBP[h]:O#2,M_GAP[h]:C#1=…"``.
+        "M_GAP[h]:O#1=M_FBP[h]:O#2,M_GAP[h]:C#1=...".
     """
     lines = mapping_lines_text.strip().split("\n")
     lines = [l for l in lines if l.strip()]
@@ -329,15 +328,15 @@ def assemble_mapping(mapping_lines_text: str) -> str:
 
 
 def run_rdt_java(smiles: str, rdt_jar: Path, cwd: Path) -> None:
-    """Run the RDT Java tool to generate an atom-atom mapped ``.rxn`` file.
+    """Run the RDT Java tool to generate an atom-atom mapped `.rxn` file.
 
-    Writes ``ECBLAST_smiles_AAM.rxn`` (and associated ``.png``/``.txt``)
+    Writes `ECBLAST_smiles_AAM.rxn` (and associated `.png`/`.txt`)
     into *cwd*.  Requires Java and the RDT JAR (v2.5.0).
 
     Args:
         smiles: Reaction SMILES string (educts>>products).
         rdt_jar: Path to the RDT JAR file.
-        cwd: Working directory — RDT writes output here.
+        cwd: Working directory: RDT writes output here.
 
     Raises:
         subprocess.CalledProcessError: If the Java process exits non-zero.
@@ -354,14 +353,14 @@ def run_rdt_java(smiles: str, rdt_jar: Path, cwd: Path) -> None:
 def obabel_to_inchi(mdl_path: Path, out_path: Path) -> None:
     """Convert an MDL file to InChI with auxiliary info using OpenBabel.
 
-    Replaces ``obabel -i mdl … -o inchi -xa -xT/nochg -O …``.
-    The ``-xT/nochg`` flag strips charge information from the InChI
-    (for canonical atom ordering).  ``-xa`` requests auxiliary info
+    Replaces `obabel -i mdl ... -o inchi -xa -xT/nochg -O ...`.
+    The `-xT/nochg` flag strips charge information from the InChI
+    (for canonical atom ordering).  `-xa` requests auxiliary info
     containing the original atom positions needed for mapping.
 
     Args:
         mdl_path: Path to the input MDL file.
-        out_path: Path for the output ``.inchi`` file.
+        out_path: Path for the output `.inchi` file.
 
     Raises:
         subprocess.CalledProcessError: If obabel exits non-zero.
@@ -374,11 +373,11 @@ def obabel_to_inchi(mdl_path: Path, out_path: Path) -> None:
 def obabel_to_inchikey(mdl_path: Path, out_path: Path) -> None:
     """Convert an MDL file to an InChIKey using OpenBabel.
 
-    Replaces ``obabel -i mdl … -oinchikey -O …``.
+    Replaces `obabel -i mdl ... -oinchikey -O ...`.
 
     Args:
         mdl_path: Path to the input MDL file.
-        out_path: Path for the output ``.inchikey`` file.
+        out_path: Path for the output `.inchikey` file.
 
     Raises:
         subprocess.CalledProcessError: If obabel exits non-zero.
@@ -390,19 +389,19 @@ def obabel_to_inchikey(mdl_path: Path, out_path: Path) -> None:
 def postprocess_reaction(rxn_dir: Path) -> bool:
     """Post-process one reaction folder: split RXN → identify species → build mapping.
 
-    Reads the existing ``ECBLAST_smiles_AAM.rxn``, splits it into
+    Reads the existing `ECBLAST_smiles_AAM.rxn`, splits it into
     individual molecules, runs obabel for InChI/InChIKey generation,
     identifies each molecule's species ID, and assembles the final
-    ``mapping.txt`` and ``mapping_lines.txt``.
+    `mapping.txt` and `mapping_lines.txt`.
 
     Handles edge cases gracefully: empty or missing RXN files produce
     empty mapping files, matching the bash script's behaviour.
 
     Args:
-        rxn_dir: Path to a reaction subfolder inside ``reaction_intermediates/``.
+        rxn_dir: Path to a reaction subfolder inside `reaction_intermediates/`.
 
     Returns:
-        ``True`` on success, ``False`` on error (with a message to stderr).
+        `True` on success, `False` on error (with a message to stderr).
     """
     try:
         rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
@@ -504,16 +503,16 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
 def process_reaction(rxn_dir: Path, rdt_jar: Path) -> bool:
     """Run the full pipeline for a single reaction: RDT + postprocessing.
 
-    Calls :func:`run_rdt_java` to generate the ``.rxn`` file, then
-    delegates to :func:`postprocess_reaction` for splitting, species
+    Calls `run_rdt_java` to generate the `.rxn` file, then
+    delegates to `postprocess_reaction` for splitting, species
     identification, and mapping assembly.
 
     Args:
-        rxn_dir: Path to a reaction subfolder containing ``rxn.smiles``.
+        rxn_dir: Path to a reaction subfolder containing `rxn.smiles`.
         rdt_jar: Path to the RDT JAR file.
 
     Returns:
-        ``True`` on success, ``False`` if ``rxn.smiles`` is missing or
+        `True` on success, `False` if `rxn.smiles` is missing or
         postprocessing fails.
     """
     rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
@@ -532,10 +531,10 @@ def main():
 
     Supports two modes via flags:
 
-    * **Default** (``python run_rdt.py``): run RDT Java on each reaction
+    * **Default** (`python run_rdt.py`): run RDT Java on each reaction
       then postprocess.
-    * ``--postprocess-only``: skip the RDT step and re-derive mapping
-      files from existing ``.rxn`` output.
+    * `--postprocess-only`: skip the RDT step and re-derive mapping
+      files from existing `.rxn` output.
     """
     _script_dir = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(

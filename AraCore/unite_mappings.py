@@ -21,10 +21,10 @@ UNIQ_C_WIDTH = 7
 def split_and_sort_mapping(mapping_text: str) -> List[str]:
     """Split a single-line mapping by commas into sorted atom pairs.
 
-    Replaces ``sed 's/,/\\n/g' mapping.txt | sort``.
+    Replaces `sed 's/,/\\n/g' mapping.txt | sort`.
 
     Args:
-        mapping_text: Contents of a ``mapping.txt`` file (single line).
+        mapping_text: Contents of a `mapping.txt` file (single line).
 
     Returns:
         Sorted list of individual atom-pair strings.
@@ -39,15 +39,15 @@ def split_and_sort_mapping(mapping_text: str) -> List[str]:
 def collect_all_mappings(reactions_dir: Path) -> Tuple[List[str], Dict[str, List[str]]]:
     """Read every reaction's mapping.txt and collect prefixed pairs.
 
-    Replaces the ``for rxn in …; do sed … | sort … ; cat … | sed … >> all_mapping.txt; done``
-    loop.  Also writes per-reaction ``mapping.sorted.txt`` files.
+    Replaces the `for rxn in ...; do sed ... | sort ... ; cat ... | sed ... >> all_mapping.txt; done`
+    loop.  Also writes per-reaction `mapping.sorted.txt` files.
 
     Args:
-        reactions_dir: Path to the ``reaction_intermediates/`` directory.
+        reactions_dir: Path to the `reaction_intermediates/` directory.
 
     Returns:
         Tuple of (all_lines, per_reaction_sorted) where all_lines is a flat
-        list of ``"<rxn_name> <pair>"`` strings and per_reaction_sorted maps
+        list of "<rxn_name> <pair>" strings and per_reaction_sorted maps
         each reaction name to its sorted pairs.
     """
     all_lines: List[str] = []
@@ -76,7 +76,7 @@ def collect_all_mappings(reactions_dir: Path) -> Tuple[List[str], Dict[str, List
 def sort_all_mappings(all_lines: List[str]) -> List[str]:
     """Sort all mapping lines lexicographically.
 
-    Replaces ``sort all_mapping.txt > all_mapping.sorted.txt``.
+    Replaces `sort all_mapping.txt > all_mapping.sorted.txt`.
     """
     return sorted(all_lines, key=locale.strxfrm)
 
@@ -84,18 +84,18 @@ def sort_all_mappings(all_lines: List[str]) -> List[str]:
 def filter_nitrogen_mappings(sorted_lines: List[str]) -> List[str]:
     """Filter sorted mapping lines to only nitrogen atom pairs.
 
-    Replaces ``grep ':N#' all_mapping.sorted.txt > all_mapping.N.sorted.txt``.
+    Replaces `grep ':N#' all_mapping.sorted.txt > all_mapping.N.sorted.txt`.
     """
     return [line for line in sorted_lines if ":N#" in line]
 
 
 def count_per_reaction(n_lines: List[str]) -> str:
-    """Count N-mapping lines per reaction, formatted like ``uniq -c | sort -n``.
+    """Count N-mapping lines per reaction, formatted like `uniq -c | sort -n`.
 
-    Replaces ``sed 's/ .*//' … | sort | uniq -c | sort -n``.
+    Replaces `sed 's/ .*//' ... | sort | uniq -c | sort -n`.
 
     Returns:
-        String in ``uniq -c`` format (right-aligned count, space, value),
+        String in `uniq -c` format (right-aligned count, space, value),
         sorted numerically by count then lexicographically by name.
     """
     rxn_names = [line.split()[0] for line in n_lines if line.strip()]
@@ -106,14 +106,14 @@ def count_per_reaction(n_lines: List[str]) -> str:
 
 
 def make_histogram(count_text: str) -> str:
-    """Build a histogram of frequency values from ``uniq -c`` output.
+    """Build a histogram of frequency values from `uniq -c` output.
 
-    Replaces ``sed 's/ *//; s/ .*//' … | sort -n | uniq -c``.
-    Takes the count column from ``count_per_reaction`` output and produces
+    Replaces `sed 's/ *//; s/ .*//' ... | sort -n | uniq -c`.
+    Takes the count column from `count_per_reaction` output and produces
     a histogram of how many reactions share each count value.
 
     Returns:
-        String in ``uniq -c`` format.
+        String in `uniq -c` format.
     """
     counts = []
     for line in count_text.strip().split("\n"):
@@ -137,8 +137,8 @@ def make_histogram(count_text: str) -> str:
 def extract_nitrogen_atoms(n_lines: List[str]) -> List[str]:
     """Extract individual atom identifiers from nitrogen mapping pairs.
 
-    Replaces ``sed 's/.* //; s/=/\\n/' all_mapping.N.sorted.txt``.
-    Each line ``"<rxn> <from_atom>=<to_atom>"`` yields two atoms.
+    Replaces `sed 's/.* //; s/=/\\n/' all_mapping.N.sorted.txt`.
+    Each line "<rxn> <from_atom>=<to_atom>" yields two atoms.
     """
     atoms: List[str] = []
     for line in n_lines:
@@ -150,17 +150,17 @@ def extract_nitrogen_atoms(n_lines: List[str]) -> List[str]:
 
 
 def count_atoms(atoms: List[str], unique: bool = False) -> str:
-    """Count atom occurrences, formatted like ``sort [-u] | uniq -c | sort -n``.
+    """Count atom occurrences, formatted like `sort [-u] | uniq -c | sort -n`.
 
-    Replaces the pipeline for both ``all_atoms.N.sorted.txt`` (unique)
-    and ``all_atoms.N.count.txt`` (with counts).
+    Replaces the pipeline for both `all_atoms.N.sorted.txt` (unique)
+    and `all_atoms.N.count.txt` (with counts).
 
     Args:
         atoms: List of atom identifier strings.
         unique: If True, deduplicate before counting (produces all 1s).
 
     Returns:
-        String in ``uniq -c`` format.
+        String in `uniq -c` format.
     """
     if unique:
         sorted_atoms = sorted(set(atoms), key=locale.strxfrm)
@@ -196,10 +196,10 @@ def _resolve_reactions_dir(reactions_dir: Path) -> Path:
 def unite_mappings(reactions_dir: Path, output_dir: Path) -> None:
     """Run the full unite_mappings pipeline and write all output files.
 
-    Replaces the complete ``unite_mappings.sh`` script.
+    Replaces the complete `unite_mappings.sh` script.
 
     Args:
-        reactions_dir: Path to ``reaction_intermediates/`` directory or ``.zip`` archive.
+        reactions_dir: Path to `reaction_intermediates/` directory or `.zip` archive.
         output_dir: Directory where output files are written.
     """
     output_dir = Path(output_dir)
