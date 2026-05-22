@@ -2,6 +2,7 @@ import hashlib
 import os
 import shutil
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -52,8 +53,9 @@ def _run_rdt(smiles, rdt_jar, cwd):
         "-Q", "SMI", "-q", smiles,
         "-g", "-c", "-b", "-j", "AAM", "-f", "TEXT",
     ]
-    subprocess.run(cmd, cwd=str(cwd),
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(cmd, cwd=str(cwd), capture_output=True)
+    if result.returncode != 0:
+        raise run_rdt.SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
 
 
 @pytest.mark.integration
@@ -315,7 +317,10 @@ def test_rdt_non_determinism_diagnostic(tmp_path):
         run_dir = tmp_path / f"{rxn_name}_run{run_idx}"
         run_dir.mkdir()
 
-        _run_rdt(smiles, RDT_JAR, run_dir)
+        try:
+            _run_rdt(smiles, RDT_JAR, run_dir)
+        except run_rdt.SubprocessError as e:
+            print(f"Run {run_idx} failed: {e}", file=sys.stderr)
 
         rxn_file = run_dir / "ECBLAST_smiles_AAM.rxn"
         if rxn_file.exists():

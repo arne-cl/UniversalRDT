@@ -11,6 +11,24 @@ from typing import List, Optional, Tuple
 from unite_mappings import _resolve_reactions_dir
 
 
+class SubprocessError(Exception):
+    """Raised when a subprocess exits non-zero, capturing full output."""
+
+    def __init__(self, cmd, returncode, stdout, stderr):
+        self.cmd = cmd
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+        cmd_str = " ".join(str(c) for c in cmd)
+        stdout_str = stdout.decode(errors="replace") if isinstance(stdout, bytes) else (stdout or "")
+        stderr_str = stderr.decode(errors="replace") if isinstance(stderr, bytes) else (stderr or "")
+        super().__init__(
+            f"Command '{cmd_str}' exited with code {returncode}\n"
+            f"stdout:\n{stdout_str}\n"
+            f"stderr:\n{stderr_str}"
+        )
+
+
 def parse_rxn_header(rxn_text: str) -> Tuple[int, int]:
     """Extract the number of reactant and product molecules from an MDL RXN header.
 
@@ -339,15 +357,16 @@ def run_rdt_java(smiles: str, rdt_jar: Path, cwd: Path) -> None:
         cwd: Working directory: RDT writes output here.
 
     Raises:
-        subprocess.CalledProcessError: If the Java process exits non-zero.
+        SubprocessError: If the Java process exits non-zero.
     """
     cmd = [
         "java", "-jar", str(rdt_jar),
         "-Q", "SMI", "-q", smiles,
         "-g", "-c", "-b", "-j", "AAM", "-f", "TEXT",
     ]
-    subprocess.run(cmd, cwd=str(cwd), check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(cmd, cwd=str(cwd), capture_output=True)
+    if result.returncode != 0:
+        raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
 
 
 def obabel_to_inchi(mdl_path: Path, out_path: Path) -> None:
@@ -363,11 +382,13 @@ def obabel_to_inchi(mdl_path: Path, out_path: Path) -> None:
         out_path: Path for the output `.inchi` file.
 
     Raises:
-        subprocess.CalledProcessError: If obabel exits non-zero.
+        SubprocessError: If obabel exits non-zero.
     """
     cmd = ["obabel", "-imdl", str(mdl_path), "-oinchi", "-xa", "-xT/nochg",
            "-O", str(out_path)]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
 
 
 def obabel_to_inchikey(mdl_path: Path, out_path: Path) -> None:
@@ -380,10 +401,12 @@ def obabel_to_inchikey(mdl_path: Path, out_path: Path) -> None:
         out_path: Path for the output `.inchikey` file.
 
     Raises:
-        subprocess.CalledProcessError: If obabel exits non-zero.
+        SubprocessError: If obabel exits non-zero.
     """
     cmd = ["obabel", "-imdl", str(mdl_path), "-oinchikey", "-O", str(out_path)]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
 
 
 def postprocess_reaction(rxn_dir: Path) -> bool:
@@ -495,6 +518,9 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
         (rxn_dir / "mapping.txt").write_text(mapping_text)
 
         return True
+    except SubprocessError as e:
+        print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
+        return False
     except Exception as e:
         print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
         return False
@@ -512,8 +538,8 @@ def process_reaction(rxn_dir: Path, rdt_jar: Path) -> bool:
         rdt_jar: Path to the RDT JAR file.
 
     Returns:
-        `True` on success, `False` if `rxn.smiles` is missing or
-        postprocessing fails.
+        `True` on success, `False` if `rxn.smiles` is missing,
+        RDT fails, or postprocessing fails.
     """
     rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
     rxn_smiles_path = rxn_dir / "rxn.smiles"
@@ -521,7 +547,11 @@ def process_reaction(rxn_dir: Path, rdt_jar: Path) -> bool:
         return False
 
     smiles = rxn_smiles_path.read_text().strip()
-    run_rdt_java(smiles, rdt_jar, rxn_dir)
+    try:
+        run_rdt_java(smiles, rdt_jar, rxn_dir)
+    except SubprocessError as e:
+        print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
+        return False
 
     return postprocess_reaction(rxn_dir)
 
@@ -563,7 +593,11 @@ def main():
     args = parser.parse_args()
 
     rdt_jar = args.rdt_jar.resolve()
-    reactions_dir = _resolve_reactions_dir(args.reactions_dir)
+    try:
+        reactions_dir = _resolve_reactions_dir(args.reactions_dir)
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     rxn_folders = sorted(reactions_dir.iterdir())
     total = len(rxn_folders)
