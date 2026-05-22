@@ -1,10 +1,14 @@
 """Python reimplementation of AraCore/run_rdt.sh for atom-to-atom mapping via RDT."""
 
 import argparse
+import base64
 import os
 import re
 import subprocess
 import sys
+import tempfile
+from dataclasses import dataclass
+from html import escape
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -365,8 +369,96 @@ def run_rdt_java(smiles: str, rdt_jar: Path, cwd: Path) -> None:
         "-g", "-c", "-b", "-j", "AAM", "-f", "TEXT",
     ]
     result = subprocess.run(cmd, cwd=str(cwd), capture_output=True)
+
+    rxn_file = cwd / "ECBLAST_smiles_AAM.rxn"
+    if rxn_file.exists() and rxn_file.stat().st_size > 0:
+        return
+
     if result.returncode != 0:
         raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
+    raise SubprocessError(cmd, 0, b"", b"RDT exited 0 but produced no output files")
+
+
+@dataclass
+class RDTResult:
+    """Holds the output of a successful RDT run for display in Jupyter."""
+
+    rxn: str
+    txt: str
+    png: bytes
+
+    def __repr__(self) -> str:
+        parts = []
+        if self.txt:
+            parts.append("=== Text ===")
+            parts.append(self.txt)
+        if self.rxn:
+            parts.append("=== RXN ===")
+            parts.append(self.rxn)
+        return "\n".join(parts)
+
+    def _repr_html_(self) -> str:
+        png_b64 = base64.b64encode(self.png).decode()
+        return (
+            '<div style="font-family: monospace;">'
+            f'<img src="data:image/png;base64,{png_b64}" '
+            'style="max-width:100%;" />'
+            '<details open><summary>Text output</summary>'
+            f'<pre style="font-size:0.85em;">{escape(self.txt)}</pre>'
+            '</details>'
+            '<details><summary>RXN file</summary>'
+            f'<pre style="font-size:0.85em;">{escape(self.rxn)}</pre>'
+            '</details>'
+            '</div>'
+        )
+
+
+def run_rdt_jupyter(
+    smiles: str,
+    rdt_jar: Path,
+    cwd: Optional[Path] = None,
+) -> RDTResult:
+    """Run RDT and return an ``RDTResult`` for interactive / Jupyter use.
+
+    Unlike :func:`run_rdt_java` (which writes into a caller-specified
+    directory and returns ``None``), this function returns the contents
+    of the generated files.  When *cwd* is ``None`` a temporary
+    directory is created automatically.
+
+    Args:
+        smiles: Reaction SMILES string (educts>>products).
+        rdt_jar: Path to the RDT JAR file.
+        cwd: Optional working directory.  Defaults to a temp directory.
+
+    Returns:
+        :class:`RDTResult` containing the ``.rxn``, ``.txt`` and ``.png``
+        output produced by RDT.
+
+    Raises:
+        SubprocessError: If RDT fails to produce output files.
+    """
+    if cwd is None:
+        cwd = Path(tempfile.mkdtemp())
+
+    cmd = [
+        "java", "-jar", str(rdt_jar),
+        "-Q", "SMI", "-q", smiles,
+        "-g", "-c", "-b", "-j", "AAM", "-f", "TEXT",
+    ]
+    result = subprocess.run(cmd, cwd=str(cwd), capture_output=True)
+
+    rxn_path = cwd / "ECBLAST_smiles_AAM.rxn"
+    txt_path = cwd / "ECBLAST_smiles_AAM.txt"
+    png_path = cwd / "ECBLAST_smiles_AAM.png"
+
+    if rxn_path.exists() and rxn_path.stat().st_size > 0:
+        return RDTResult(
+            rxn=rxn_path.read_text(),
+            txt=txt_path.read_text() if txt_path.exists() else "",
+            png=png_path.read_bytes() if png_path.exists() else b"",
+        )
+
+    raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
 
 
 def obabel_to_inchi(mdl_path: Path, out_path: Path) -> None:
