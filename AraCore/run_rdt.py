@@ -86,24 +86,7 @@ def split_rxn_to_mols(rxn_text: str) -> List[str]:
     return blocks
 
 
-def mol_block_to_mdl(mol_block: str) -> str:
-    """Convert a raw molecule block (after `$MOL` split) into MDL text.
-
-    In AraCore mode the `M CHG` lines are preserved (unlike the
-    MetaCyc variant which strips them).  The function is essentially a
-    pass-through because `split_rxn_to_mols` already strips the
-    `$MOL` marker line.
-
-    Args:
-        mol_block: Text of one molecule block from `split_rxn_to_mols`.
-
-    Returns:
-        MDL-format molecule text ready for obabel consumption.
-    """
-    return mol_block
-
-
-def parse_mdl_atom_table(mdl_text: str) -> List[Tuple[str, int]]:
+def parse_mdl_atom_table(mol_block: str) -> List[Tuple[str, int]]:
     """Extract (element, rdt_atom_index) from V2000 atom lines in an MDL block.
 
     Replaces `awk '(NF==16){print $4"\\t"$14} (NF==15){print $4"\\t"(0+$13)}'`.
@@ -111,13 +94,13 @@ def parse_mdl_atom_table(mdl_text: str) -> List[Tuple[str, int]]:
     field 13 (0-based); lines with 15 fields use field 12 instead.
 
     Args:
-        mdl_text: MDL-format molecule text (as produced by `mol_block_to_mdl`).
+        mol_block: MDL-format molecule text (as produced by `split_rxn_to_mols`).
 
     Returns:
         Ordered list of `(element_symbol, global_atom_index)` tuples,
         one per atom in the molecule.
     """
-    lines = mdl_text.split("\n")
+    lines = mol_block.split("\n")
     atoms = []
     for line in lines:
         fields = line.split()
@@ -502,7 +485,7 @@ def obabel_to_inchikey(mdl_path: Path, out_path: Path) -> None:
 
 
 def postprocess_reaction(rxn_dir: Path) -> bool:
-    """Post-process one reaction folder: split RXN → identify species → build mapping.
+    """Post-process one reaction folder: split RXN -> identify species -> build mapping.
 
     Reads the existing `ECBLAST_smiles_AAM.rxn`, splits it into
     individual molecules, runs obabel for InChI/InChIKey generation,
@@ -550,11 +533,10 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
             mol_num = i + 1
             mol_prefix = f"MOL_{mol_num:02d}"
 
-            mdl_text = mol_block_to_mdl(mol_block)
             mdl_path = rxn_dir / f"{mol_prefix}.mdl"
-            mdl_path.write_text(mdl_text)
+            mdl_path.write_text(mol_block)
 
-            rdt_index = parse_mdl_atom_table(mdl_text)
+            rdt_index = parse_mdl_atom_table(mol_block)
             rdt_index_path = rxn_dir / f"{mol_prefix}.rdt_index"
             rdt_index_path.write_text(
                 "\n".join(f"{elem}\t{idx}" for elem, idx in rdt_index) + "\n"

@@ -14,15 +14,6 @@ def test_split_rxn_to_mols(sample_rxn_text):
         assert block.startswith("M0")
 
 
-def test_mol_block_to_mdl(sample_rxn_text):
-    mol_blocks = run_rdt.split_rxn_to_mols(sample_rxn_text)
-    mdl = run_rdt.mol_block_to_mdl(mol_blocks[0])
-    lines = mdl.split("\n")
-    assert lines[0].startswith("M00001")
-    assert "M  CHG" in mdl
-    assert "M  END" in mdl
-
-
 def test_parse_mdl_atom_table(sample_mol_01_mdl):
     atoms = run_rdt.parse_mdl_atom_table(sample_mol_01_mdl)
     expected = [
