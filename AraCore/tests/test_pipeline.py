@@ -73,29 +73,28 @@ def test_postprocess_single_reaction(tmp_path):
     assert actual == expected
 
 
+RXN_NAMES = _all_rxn_names_from_zip()
+
+
 @pytest.mark.integration
-def test_python_matches_bash_for_all_reactions(tmp_path):
-    failures = []
-    for rxn_name in _all_rxn_names_from_zip():
-        rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path / rxn_name)
-        bash_mapping = (rxn_dir / "mapping.txt").read_text()
-        _strip_generated_files(rxn_dir)
+@pytest.mark.parametrize("rxn_name", RXN_NAMES)
+def test_python_matches_bash_for_one_reaction(tmp_path, rxn_name):
+    rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path / rxn_name)
+    bash_mapping = (rxn_dir / "mapping.txt").read_text()
+    _strip_generated_files(rxn_dir)
 
-        run_rdt.postprocess_reaction(rxn_dir)
-        py_mapping = (rxn_dir / "mapping.txt").read_text()
+    run_rdt.postprocess_reaction(rxn_dir)
+    py_mapping = (rxn_dir / "mapping.txt").read_text()
 
-        if py_mapping != bash_mapping:
-            failures.append(rxn_name)
-
-    unexpected = [f for f in failures if f not in KNOWN_PYTHON_BASH_DIFFS]
-    assert unexpected == [], (
-        f"{len(unexpected)} unexpected Python-vs-bash mismatches:\n"
-        + "\n".join(unexpected[:20])
-    )
-    assert set(failures) == KNOWN_PYTHON_BASH_DIFFS, (
-        f"Expected known diffs {sorted(KNOWN_PYTHON_BASH_DIFFS)}, "
-        f"got {sorted(failures)}"
-    )
+    if rxn_name in KNOWN_PYTHON_BASH_DIFFS:
+        assert py_mapping != bash_mapping, (
+            f"Expected known Python-vs-bash difference for {rxn_name}, "
+            f"but mappings now match (bug may have been fixed)"
+        )
+    else:
+        assert py_mapping == bash_mapping, (
+            f"Unexpected Python-vs-bash mismatch for {rxn_name}"
+        )
 
 
 @pytest.mark.integration
