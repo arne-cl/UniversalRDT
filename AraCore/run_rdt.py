@@ -445,7 +445,7 @@ def run_rdt_jupyter(
 
 
 def obabel_to_inchi(mol_block: str) -> str:
-    """Convert an MDL file to InChI with auxiliary info using OpenBabel.
+    """Convert a molecule block string to InChI with auxiliary info using OpenBabel.
 
     Replaces `obabel -i mdl ... -o inchi -xa -xT/nochg -O ...`.
     The `-xT/nochg` flag strips charge information from the InChI
@@ -468,23 +468,25 @@ def obabel_to_inchi(mol_block: str) -> str:
     return result.stdout.decode()
 
 
-def obabel_to_inchikey(mdl_path: Path, out_path: Path) -> None:
-    """Convert an MDL file to an InChIKey using OpenBabel.
+def obabel_to_inchikey(mol_block: str) -> str:
+    """Convert a molecule block string to an InChIKey using OpenBabel.
 
     Replaces `obabel -i mdl ... -oinchikey -O ...`.
 
     Args:
-        mdl_path: Path to the input MDL file.
-        out_path: Path for the output `.inchikey` file.
+        mol_block: molecule block string, as produced by `split_rxn_to_mols`
 
     Raises:
         SubprocessError: If obabel exits non-zero.
+
+    Returns:
+        InChIKey string
     """
-    cmd = ["obabel", "-imdl", str(mdl_path), "-oinchikey", "-O", str(out_path)]
-    result = subprocess.run(cmd, capture_output=True)
+    cmd = ["obabel", "-imdl", "-", "-oinchikey"]
+    result = subprocess.run(cmd, capture_output=True, input=mol_block.encode())
     if result.returncode != 0:
         raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
-
+    return result.stdout.decode().strip()
 
 def postprocess_reaction(rxn_dir: Path) -> bool:
     """Post-process one reaction folder: split RXN -> identify species -> build mapping.
@@ -535,26 +537,15 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
             mol_num = i + 1
             mol_prefix = f"MOL_{mol_num:02d}"
 
-            mdl_path = rxn_dir / f"{mol_prefix}.mdl"
-            mdl_path.write_text(mol_block)
-
             rdt_index = parse_mdl_atom_table(mol_block)
             rdt_index_path = rxn_dir / f"{mol_prefix}.rdt_index"
             rdt_index_path.write_text(
                 "\n".join(f"{elem}\t{idx}" for elem, idx in rdt_index) + "\n"
             )
 
-            inchi_path = rxn_dir / f"{mol_prefix}.inchi"
-            inchikey_path = rxn_dir / f"{mol_prefix}.inchikey"
-
             inchi_text = obabel_to_inchi(mol_block)
-            obabel_to_inchikey(mdl_path, inchikey_path)
+            inchikey = obabel_to_inchikey(mol_block)
 
-            if not inchikey_path.exists() or inchikey_path.stat().st_size == 0:
-                counter += 1
-                continue
-
-            inchikey = inchikey_path.read_text().strip()
             if not inchikey:
                 counter += 1
                 continue
@@ -579,7 +570,6 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
             species_id_path = rxn_dir / f"{mol_prefix}.species_id"
             species_id_path.write_text(species_id + "\n")
 
-            # inchi_text = inchi_path.read_text()
             inchi_order = parse_inchi_atom_order(inchi_text)
 
             lines = build_mapping_lines(rdt_index, inchi_order, species_id, mapping_side)
