@@ -63,8 +63,8 @@ def test_postprocess_single_reaction(tmp_path):
     rxn_dir = _extract_rxn_from_zip("FBPA_h", tmp_path)
     _strip_generated_files(rxn_dir)
 
-    result = run_rdt.postprocess_reaction(rxn_dir)
-    assert result is True
+    success, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
+    assert success is True
 
     golden = GOLDEN_DIR / "FBPA_h.mapping.txt"
     assert golden.exists()
@@ -83,8 +83,9 @@ def test_python_matches_bash_for_one_reaction(tmp_path, rxn_name):
     bash_mapping = (rxn_dir / "mapping.txt").read_text()
     _strip_generated_files(rxn_dir)
 
-    run_rdt.postprocess_reaction(rxn_dir)
+    success, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
     py_mapping = (rxn_dir / "mapping.txt").read_text()
+    assert mapping_text == py_mapping
 
     if rxn_name in KNOWN_PYTHON_BASH_DIFFS:
         assert py_mapping != bash_mapping, (

@@ -488,7 +488,7 @@ def obabel_to_inchikey(mol_block: str) -> str:
         raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
     return result.stdout.decode().strip()
 
-def postprocess_reaction(rxn_dir: Path) -> bool:
+def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str]:
     """Post-process one reaction folder: split RXN -> identify species -> build mapping.
 
     Reads the existing `ECBLAST_smiles_AAM.rxn`, splits it into
@@ -503,20 +503,22 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
         rxn_dir: Path to a reaction subfolder inside `reaction_intermediates/`.
 
     Returns:
-        `True` on success, `False` on error (with a message to stderr).
+        tuple[bool, str]
+            bool: `True` on success, `False` on error (with a message to stderr)
+            str: atom mapping (as it is written to `mapping.txt`
     """
     try:
         rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
         if not rxn_file.exists() or rxn_file.stat().st_size == 0:
             (rxn_dir / "mapping.txt").write_text("")
             (rxn_dir / "mapping_lines.txt").write_text("")
-            return True
+            return True, ""
 
         rxn_text = rxn_file.read_text()
         if "$MOL" not in rxn_text:
             (rxn_dir / "mapping.txt").write_text("")
             (rxn_dir / "mapping_lines.txt").write_text("")
-            return True
+            return True, ""
 
         from_num, to_num = parse_rxn_header(rxn_text)
 
@@ -567,8 +569,8 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
                 counter += 1
                 continue
 
-            species_id_path = rxn_dir / f"{mol_prefix}.species_id"
-            species_id_path.write_text(species_id + "\n")
+            # ~ species_id_path = rxn_dir / f"{mol_prefix}.species_id"
+            # ~ species_id_path.write_text(species_id + "\n")
 
             inchi_order = parse_inchi_atom_order(inchi_text)
 
@@ -583,13 +585,13 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
         mapping_text = assemble_mapping("\n".join(all_mapping_lines))
         (rxn_dir / "mapping.txt").write_text(mapping_text)
 
-        return True
+        return True, mapping_text
     except SubprocessError as e:
         print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
-        return False
+        return False, ""
     except Exception as e:
         print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
-        return False
+        return False, ""
 
 
 def process_reaction(rxn_dir: Path, rdt_jar: Path) -> bool:
