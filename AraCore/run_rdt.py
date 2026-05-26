@@ -444,7 +444,7 @@ def run_rdt_jupyter(
     raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
 
 
-def obabel_to_inchi(mdl_path: Path, out_path: Path) -> None:
+def obabel_to_inchi(mol_block: str) -> str:
     """Convert an MDL file to InChI with auxiliary info using OpenBabel.
 
     Replaces `obabel -i mdl ... -o inchi -xa -xT/nochg -O ...`.
@@ -453,17 +453,19 @@ def obabel_to_inchi(mdl_path: Path, out_path: Path) -> None:
     containing the original atom positions needed for mapping.
 
     Args:
-        mdl_path: Path to the input MDL file.
-        out_path: Path for the output `.inchi` file.
+        mol_block: molecule block string, as produced by `split_rxn_to_mols`
 
     Raises:
         SubprocessError: If obabel exits non-zero.
+    
+    Returns:
+        InChI string with auxiliary info
     """
-    cmd = ["obabel", "-imdl", str(mdl_path), "-oinchi", "-xa", "-xT/nochg",
-           "-O", str(out_path)]
-    result = subprocess.run(cmd, capture_output=True)
+    cmd = ["obabel", "-imdl", "-", "-oinchi", "-xa", "-xT/nochg"]
+    result = subprocess.run(cmd, capture_output=True, input=mol_block.encode())
     if result.returncode != 0:
         raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
+    return result.stdout.decode()
 
 
 def obabel_to_inchikey(mdl_path: Path, out_path: Path) -> None:
@@ -545,7 +547,7 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
             inchi_path = rxn_dir / f"{mol_prefix}.inchi"
             inchikey_path = rxn_dir / f"{mol_prefix}.inchikey"
 
-            obabel_to_inchi(mdl_path, inchi_path)
+            inchi_text = obabel_to_inchi(mol_block)
             obabel_to_inchikey(mdl_path, inchikey_path)
 
             if not inchikey_path.exists() or inchikey_path.stat().st_size == 0:
@@ -577,7 +579,7 @@ def postprocess_reaction(rxn_dir: Path) -> bool:
             species_id_path = rxn_dir / f"{mol_prefix}.species_id"
             species_id_path.write_text(species_id + "\n")
 
-            inchi_text = inchi_path.read_text()
+            # inchi_text = inchi_path.read_text()
             inchi_order = parse_inchi_atom_order(inchi_text)
 
             lines = build_mapping_lines(rdt_index, inchi_order, species_id, mapping_side)
