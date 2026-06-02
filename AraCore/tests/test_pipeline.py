@@ -63,7 +63,7 @@ def test_postprocess_single_reaction(tmp_path):
     rxn_dir = _extract_rxn_from_zip("FBPA_h", tmp_path)
     _strip_generated_files(rxn_dir)
 
-    success, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
+    success, _, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
     assert success is True
 
     golden = GOLDEN_DIR / "FBPA_h.mapping.txt"
@@ -81,9 +81,15 @@ RXN_NAMES = _all_rxn_names_from_zip()
 def test_python_matches_bash_for_one_reaction(tmp_path, rxn_name):
     rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path / rxn_name)
     bash_mapping = (rxn_dir / "mapping.txt").read_text()
-    _strip_generated_files(rxn_dir)
+    bash_mapping_lines_path = rxn_dir / "mapping_lines.txt"
+    if bash_mapping_lines_path.exists():
+        bash_mapping_lines = bash_mapping_lines_path.read_text()
+        _strip_generated_files(rxn_dir)
+    else:
+        bash_mapping_lines = None
+        _strip_generated_files(rxn_dir)
 
-    success, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
+    success, mapping_lines_text, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
     py_mapping = (rxn_dir / "mapping.txt").read_text()
     assert mapping_text == py_mapping
 
@@ -95,6 +101,14 @@ def test_python_matches_bash_for_one_reaction(tmp_path, rxn_name):
     else:
         assert py_mapping == bash_mapping, (
             f"Unexpected Python-vs-bash mismatch for {rxn_name}"
+        )
+
+    py_mapping_lines = (rxn_dir / "mapping_lines.txt").read_text()
+    assert mapping_lines_text == py_mapping_lines
+
+    if bash_mapping_lines is not None and rxn_name not in KNOWN_PYTHON_BASH_DIFFS:
+        assert py_mapping_lines == bash_mapping_lines, (
+            f"Unexpected Python-vs-bash mapping_lines mismatch for {rxn_name}"
         )
 
 
@@ -111,6 +125,21 @@ def test_postprocess_reaction_is_deterministic(tmp_path):
         shutil.rmtree(rxn_dir.parent.parent, ignore_errors=True)
 
     assert len(outputs) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("rxn_name", RXN_NAMES)
+def test_mapping_txt_consistent_with_mapping_lines(tmp_path, rxn_name):
+    rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path / rxn_name)
+    _strip_generated_files(rxn_dir)
+
+    success, mapping_lines_text, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
+    assert success is True
+
+    reconstructed = run_rdt.assemble_mapping(mapping_lines_text)
+    assert reconstructed == mapping_text, (
+        f"mapping.txt is not derivable from mapping_lines.txt for {rxn_name}"
+    )
 
 
 def _bash_pipeline_assemble(mapping_lines_text):

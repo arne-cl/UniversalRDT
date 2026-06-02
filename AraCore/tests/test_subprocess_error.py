@@ -102,23 +102,29 @@ class TestProcessReactionErrorHandling:
         rxn_dir = tmp_path / "bad_reaction"
         rxn_dir.mkdir()
         (rxn_dir / "rxn.smiles").write_text("NOT_VALID_SMILES>>ALSO_BAD")
-        result = run_rdt.process_reaction(rxn_dir, RDT_JAR)
-        assert result is False
+        success, mapping_lines, mapping_text = run_rdt.process_reaction(rxn_dir, RDT_JAR)
+        assert success is False
+        assert mapping_lines == ""
+        assert mapping_text == ""
         captured = capsys.readouterr()
         assert "Error processing bad_reaction" in captured.err
 
     def test_process_reaction_returns_false_missing_smiles(self, tmp_path):
         rxn_dir = tmp_path / "no_smiles"
         rxn_dir.mkdir()
-        result = run_rdt.process_reaction(rxn_dir, Path("/fake/jar.jar"))
-        assert result is False
+        success, mapping_lines, mapping_text = run_rdt.process_reaction(rxn_dir, Path("/fake/jar.jar"))
+        assert success is False
+        assert mapping_lines == ""
+        assert mapping_text == ""
 
     def test_process_reaction_returns_false_missing_jar(self, tmp_path, capsys):
         rxn_dir = tmp_path / "missing_jar"
         rxn_dir.mkdir()
         (rxn_dir / "rxn.smiles").write_text("C>>C")
         fake_jar = tmp_path / "nonexistent.jar"
-        result = run_rdt.process_reaction(rxn_dir, fake_jar)
-        assert result is False
+        success, mapping_lines, mapping_text = run_rdt.process_reaction(rxn_dir, fake_jar)
+        assert success is False
+        assert mapping_lines == ""
+        assert mapping_text == ""
         captured = capsys.readouterr()
         assert "Error processing missing_jar" in captured.err

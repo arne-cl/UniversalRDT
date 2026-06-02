@@ -488,7 +488,7 @@ def obabel_to_inchikey(mol_block: str) -> str:
         raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
     return result.stdout.decode().strip()
 
-def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str]:
+def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str, str]:
     """Post-process one reaction folder: split RXN -> identify species -> build mapping.
 
     Reads the existing `ECBLAST_smiles_AAM.rxn`, splits it into
@@ -503,22 +503,23 @@ def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str]:
         rxn_dir: Path to a reaction subfolder inside `reaction_intermediates/`.
 
     Returns:
-        tuple[bool, str]
+        tuple[bool, str, str]
             bool: `True` on success, `False` on error (with a message to stderr)
-            str: atom mapping (as it is written to `mapping.txt`
+            str: mapping lines text (as written to `mapping_lines.txt`)
+            str: atom mapping text (as written to `mapping.txt`)
     """
     try:
         rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
         if not rxn_file.exists() or rxn_file.stat().st_size == 0:
             (rxn_dir / "mapping.txt").write_text("")
             (rxn_dir / "mapping_lines.txt").write_text("")
-            return True, ""
+            return True, "", ""
 
         rxn_text = rxn_file.read_text()
         if "$MOL" not in rxn_text:
             (rxn_dir / "mapping.txt").write_text("")
             (rxn_dir / "mapping_lines.txt").write_text("")
-            return True, ""
+            return True, "", ""
 
         from_num, to_num = parse_rxn_header(rxn_text)
 
@@ -579,22 +580,23 @@ def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str]:
 
             counter += 1
 
+        mapping_lines_text = "\n".join(all_mapping_lines) + "\n"
         mapping_lines_path = rxn_dir / "mapping_lines.txt"
-        mapping_lines_path.write_text("\n".join(all_mapping_lines) + "\n")
+        mapping_lines_path.write_text(mapping_lines_text)
 
         mapping_text = assemble_mapping("\n".join(all_mapping_lines))
         (rxn_dir / "mapping.txt").write_text(mapping_text)
 
-        return True, mapping_text
+        return True, mapping_lines_text, mapping_text
     except SubprocessError as e:
         print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
-        return False, ""
+        return False, "", ""
     except Exception as e:
         print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
-        return False, ""
+        return False, "", ""
 
 
-def process_reaction(rxn_dir: Path, rdt_jar: Path) -> bool:
+def process_reaction(rxn_dir: Path, rdt_jar: Path) -> tuple[bool, str, str]:
     """Run the full pipeline for a single reaction: RDT + postprocessing.
 
     Calls `run_rdt_java` to generate the `.rxn` file, then
@@ -606,20 +608,22 @@ def process_reaction(rxn_dir: Path, rdt_jar: Path) -> bool:
         rdt_jar: Path to the RDT JAR file.
 
     Returns:
-        `True` on success, `False` if `rxn.smiles` is missing,
-        RDT fails, or postprocessing fails.
+        Same as :func:`postprocess_reaction`: ``tuple[bool, str, str]``
+        ``(success, mapping_lines_text, mapping_text)``.
+        Returns ``(False, "", "")`` if ``rxn.smiles`` is missing
+        or RDT fails.
     """
     rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
     rxn_smiles_path = rxn_dir / "rxn.smiles"
     if not rxn_smiles_path.exists():
-        return False
+        return False, "", ""
 
     smiles = rxn_smiles_path.read_text().strip()
     try:
         run_rdt_java(smiles, rdt_jar, rxn_dir)
     except SubprocessError as e:
         print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
-        return False
+        return False, "", ""
 
     return postprocess_reaction(rxn_dir)
 
@@ -677,10 +681,12 @@ def main():
         print(rxn_folder.name)
 
         if args.postprocess_only:
-            if postprocess_reaction(rxn_folder):
+            ok, _, _ = postprocess_reaction(rxn_folder)
+            if ok:
                 success += 1
         else:
-            if process_reaction(rxn_folder, rdt_jar):
+            ok, _, _ = process_reaction(rxn_folder, rdt_jar)
+            if ok:
                 success += 1
 
     print(f"\nProcessed {success}/{total} reactions successfully", file=sys.stderr)
