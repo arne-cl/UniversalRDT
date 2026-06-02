@@ -15,6 +15,15 @@ from typing import List, Optional, Tuple
 from unite_mappings import _resolve_reactions_dir
 
 
+_N_FIELD = re.compile(
+    r"""
+    /N:       # atom-ordering field marker
+    ([^/]+)   # capture: comma-separated 1-based indices
+    """,
+    re.VERBOSE,
+)
+
+
 class SubprocessError(Exception):
     """Raised when a subprocess exits non-zero, capturing full output."""
 
@@ -116,7 +125,7 @@ def parse_mdl_atom_table(mol_block: str) -> List[Tuple[str, int]]:
     return atoms
 
 
-def parse_inchi_atom_order(inchi_text: str) -> List[int]:
+def parse_inchi_atom_order(inchi_text: str) -> list[int]:
     """Parse the InChI auxiliary `/N:` field to recover atom ordering.
 
     Replaces `grep 'AuxInfo' ... | sed 's/^.*\\/N://; s\\/.*$//; s/,/ /g'`.
@@ -128,14 +137,23 @@ def parse_inchi_atom_order(inchi_text: str) -> List[int]:
 
     Returns:
         List of 1-based atom-table line numbers in InChI order.
-        Defaults to `[1]` when no `/N:` field is present (single atom).
+        Returns `[1]` when no `/N:` field is present
+        (correct for single-atom molecules like H+).
+
+    Example:
+        >>> parse_inchi_atom_order(
+        ...     "InChI=1S/C3H7O6P/c4-1-3(5)2-9-10(6,7)8/h1,3,5H,2H2,(H2,6,7,8)/t3-/m0/s1\\n"
+        ...     "AuxInfo=1/1/N:2,5,3,1,4,8,9,10,6,7/E:(6,7,8)/it:im/rA:10OCCOCOPOO-O-/rB:d1;s2;N3;s3;s5;s6;d7;s7;s7;/rC:-6.3212,3.8505,0;-5.0221,3.1005,0;-3.7231,3.8505,0;-3.7231,5.3505,0;-2.424,3.1005,0;-1.125,3.8505,0;.174,3.1005,0;-.576,1.8014,0;1.4731,2.3505,0;.924,4.3995,0;\\n"
+        ... )
+        [2, 5, 3, 1, 4, 8, 9, 10, 6, 7]
+        >>> parse_inchi_atom_order("InChI=1S/H2O/h1H2\\n")
+        [1]
     """
-    for line in inchi_text.split("\n"):
+    for line in inchi_text.splitlines():
         if "AuxInfo" in line and "/N:" in line:
-            n_part = re.sub(r"^.*?/N:", "", line)
-            n_part = re.sub(r"/.*$", "", n_part)
-            indices = [int(x) for x in n_part.split(",")]
-            return indices
+            match = _N_FIELD.search(line)
+            if match:
+                return [int(x) for x in match.group(1).split(",")]
     return [1]
 
 
