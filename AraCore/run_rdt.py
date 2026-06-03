@@ -10,7 +10,7 @@ import tempfile
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
-from typing import List, Optional, Tuple
+
 
 from unite_mappings import _resolve_reactions_dir
 
@@ -42,7 +42,7 @@ class SubprocessError(Exception):
         )
 
 
-def parse_rxn_header(rxn_text: str) -> Tuple[int, int]:
+def parse_rxn_header(rxn_text: str) -> tuple[int, int]:
     """Extract the number of reactant and product molecules from an MDL RXN header.
 
     Replaces `grep -m1 -B1 '$MOL' ... | head -n 1` combined with
@@ -72,7 +72,7 @@ def parse_rxn_header(rxn_text: str) -> Tuple[int, int]:
     raise ValueError("Could not parse RXN header counts")
 
 
-def split_rxn_to_mols(rxn_text: str) -> List[str]:
+def split_rxn_to_mols(rxn_text: str) -> list[str]:
     """Split an MDL RXN file into individual molecule blocks.
 
     Replaces `csplit -f MOL_ ... '/$MOL/' {*}`: each returned block
@@ -95,7 +95,7 @@ def split_rxn_to_mols(rxn_text: str) -> List[str]:
     return blocks
 
 
-def parse_mdl_atom_table(mol_block: str) -> List[Tuple[str, int]]:
+def parse_mdl_atom_table(mol_block: str) -> list[tuple[str, int]]:
     """Extract (element, rdt_atom_index) from V2000 atom lines in an MDL block.
 
     Replaces `awk '(NF==16){print $4"\\t"$14} (NF==15){print $4"\\t"(0+$13)}'`.
@@ -184,7 +184,7 @@ def load_inchikey_table(text: str) -> list:
     return table
 
 
-def lookup_species(inchikey: str, table: list) -> List[str]:
+def lookup_species(inchikey: str, table: list) -> list[str]:
     """Look up species IDs by InChIKey with a 14-character prefix fallback.
 
     Replaces the bash `grep "$(cat ...inchikey)" species_id_inchikey.txt`
@@ -213,7 +213,7 @@ def lookup_species(inchikey: str, table: list) -> List[str]:
     return matches
 
 
-def load_species_list(text: str) -> List[str]:
+def load_species_list(text: str) -> list[str]:
     """Load a newline-separated list of species IDs (with compartment tags).
 
     Used for `from_species_with_cmp` and `to_species_with_cmp` files.
@@ -227,7 +227,7 @@ def load_species_list(text: str) -> List[str]:
     return [line.strip() for line in text.strip().split("\n") if line.strip()]
 
 
-def find_species_with_cmp(species_no_cmp: str, cmp_list: List[str]) -> Optional[str]:
+def find_species_with_cmp(species_no_cmp: str, cmp_list: list[str]) -> str | None:
     """Find all compartmented species IDs that contain the given base ID.
 
     Replaces `grep "$species_id_without_cmp" from_species_with_cmp`.
@@ -247,7 +247,7 @@ def find_species_with_cmp(species_no_cmp: str, cmp_list: List[str]) -> Optional[
     return None
 
 
-def find_species_with_cmp_multi(species_ids: List[str], cmp_list: List[str]) -> Optional[str]:
+def find_species_with_cmp_multi(species_ids: list[str], cmp_list: list[str]) -> str | None:
     """Find compartmented species IDs matching any of several base IDs.
 
     When `lookup_species` returns multiple candidates (e.g. both
@@ -274,11 +274,11 @@ def find_species_with_cmp_multi(species_ids: List[str], cmp_list: List[str]) -> 
 
 
 def build_mapping_lines(
-    rdt_index: List[Tuple[str, int]],
-    inchi_order: List[int],
+    rdt_index: list[tuple[str, int]],
+    inchi_order: list[int],
     species_id: str,
     side: str,
-) -> List[str]:
+) -> list[str]:
     """Build individual mapping-line entries for one molecule.
 
     Walks the InChI atom order, tracks an element-wise counter (C#1,
@@ -417,7 +417,7 @@ class RDTResult:
 def run_rdt_jupyter(
     smiles: str,
     rdt_jar: Path,
-    cwd: Optional[Path] = None,
+    cwd: Path | None = None,
 ) -> RDTResult:
     """Run RDT and return an ``RDTResult`` for interactive / Jupyter use.
 
