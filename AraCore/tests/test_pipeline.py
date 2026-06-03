@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -330,51 +331,50 @@ class TestBashScriptBugs:
 
 
 @pytest.mark.integration
-def test_rdt_non_determinism_diagnostic(tmp_path):
-    if not RDT_JAR.exists():
-        pytest.skip(f"RDT JAR not found at {RDT_JAR}")
+def test_rdt_is_deterministic(tmp_path):
+    """Assert that RDT produces identical .rxn output for the same reaction SMILES.
 
-    rxn_name = "AspAT_h"
-    rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path)
+    I suspected that RDT _sometimes_ produces different outputs for the same input.
+    This test exists to prove it.
 
-    smiles = (rxn_dir / "rxn.smiles").read_text().strip()
+    Runs RDT up to 10 times per reaction on a curated set of reactions,
+    comparing the raw .rxn file content across runs. The test passes if
+    all runs for every reaction produce identical output. If any reaction
+    yields differing .rxn files, the test xfails.
+    """
+    rxn_names = ["AspAT_h", "FBPA_h", "DPE12_h", "OrnAT_m"]
+    max_runs = 10
 
-    NUM_RUNS = 5
-    rxn_hashes = set()
+    for rxn_name in rxn_names:
+        rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path / rxn_name / "template")
+        smiles = (rxn_dir / "rxn.smiles").read_text().strip()
+        rxn_hashes = set()
 
-    for run_idx in range(NUM_RUNS):
-        run_dir = tmp_path / f"{rxn_name}_run{run_idx}"
-        run_dir.mkdir()
+        for run_idx in range(max_runs):
+            run_dir = tmp_path / rxn_name / f"run{run_idx}"
+            run_dir.mkdir(parents=True, exist_ok=True)
 
-        try:
-            _run_rdt(smiles, RDT_JAR, run_dir)
-        except run_rdt.SubprocessError as e:
-            print(f"Run {run_idx} failed: {e}", file=sys.stderr)
+            try:
+                _run_rdt(smiles, RDT_JAR, run_dir)
+            # RDT often (always?) ends with exit code 1 although it produces
+            # an .rxn file without any further error message.
+            except run_rdt.SubprocessError:
+                pass
 
-        rxn_file = run_dir / "ECBLAST_smiles_AAM.rxn"
-        if rxn_file.exists():
-            rxn_text = rxn_file.read_text()
-            mol_blocks = run_rdt.split_rxn_to_mols(rxn_text)
-            atom_lines = []
-            for mol_block in mol_blocks:
-                atoms = run_rdt.parse_mdl_atom_table(mol_block)
-                for elem, idx in atoms:
-                    atom_lines.append(f"{elem}\t{idx}")
-            rxn_hashes.add(
-                hashlib.md5("\n".join(atom_lines).encode()).hexdigest()
+            rxn_file = run_dir / "ECBLAST_smiles_AAM.rxn"
+            assert rxn_file.exists(), (
+                f"RDT produced no .rxn for {rxn_name} run {run_idx} "
+                f"(JAR: {RDT_JAR})"
             )
 
-        shutil.rmtree(run_dir, ignore_errors=True)
+            rxn_text = rxn_file.read_text()
+            rxn_hashes.add(hashlib.md5(rxn_text.encode()).hexdigest())
+            shutil.rmtree(run_dir, ignore_errors=True)
 
-    if len(rxn_hashes) > 1:
-        print(
-            f"WARNING: RDT produced {len(rxn_hashes)} distinct atom mappings "
-            f"for {rxn_name} across {NUM_RUNS} runs. This confirms RDT is "
-            f"non-deterministic for reactions with symmetric molecules."
-        )
-    else:
-        print(
-            f"NOTE: RDT produced identical output for {rxn_name} across "
-            f"{NUM_RUNS} runs on this machine. RDT's non-determinism may be "
-            f"environment-dependent or intermittent."
-        )
+            if len(rxn_hashes) > 1:
+                msg = (
+                    f"RDT produced {len(rxn_hashes)} distinct .rxn outputs "
+                    f"for {rxn_name} after {run_idx + 1} runs"
+                )
+                warnings.warn(msg)
+                pytest.xfail(msg)
