@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
@@ -408,6 +408,258 @@ def assemble_mapping(entries: list[MappingEntry]) -> str:
     return "".join(e.label for e in non_h).replace(" ", "").rstrip(",")
 
 
+# ── Pairing and display for Jupyter notebooks ─────────────────────────
+
+
+_LABEL_RE = re.compile(r"^([^:]+):([A-Z][a-z]?)#(\d+)([=,])$")
+
+
+def _parse_mapping_line(line: str) -> MappingEntry | None:
+    """Parse a single mapping_lines.txt line back into a MappingEntry.
+
+    Format: ``<rdt_atom_index>\\t<side>\\t<label>`` where label looks
+    like ``M_GAP[h]:C#1=`` or ``M_FBP[h]:C#5,``.
+
+    Returns ``None`` for blank lines or unparsable labels.
+    """
+    parts = line.strip().split("\t", 2)
+    if len(parts) < 3:
+        return None
+    rdt_idx = int(parts[0])
+    side = parts[1]
+    label = parts[2]
+    m = _LABEL_RE.match(label)
+    if not m:
+        return None
+    species_id, element, elem_idx_str, sep = m.groups()
+    compartment = extract_compartment(species_id)
+    return MappingEntry(
+        rdt_atom_index=rdt_idx,
+        side=side,
+        species_id=species_id,
+        compartment=compartment,
+        element=element,
+        element_index=int(elem_idx_str),
+    )
+
+
+def pair_entries(entries: list[MappingEntry]) -> "AtomMapping":
+    """Group MappingEntry objects by RDT atom index into from/to pairs.
+
+    Hydrogen entries are filtered out (they are typically not matched
+    between sides).  Entries with the same ``rdt_atom_index`` and
+    opposite sides form a pair; unpaired entries are collected as
+    ``unmapped_from`` / ``unmapped_to``.
+
+    Args:
+        entries: Flat list of ``MappingEntry`` objects from all molecules.
+
+    Returns:
+        ``AtomMapping`` with sorted pairs and unmatched atoms.
+    """
+    non_h = [e for e in entries if e.element != "H"]
+    by_index: dict[int, list[MappingEntry]] = defaultdict(list)
+    for e in non_h:
+        by_index[e.rdt_atom_index].append(e)
+
+    pairs: list[tuple[MappingEntry, MappingEntry]] = []
+    unmapped_from: list[MappingEntry] = []
+    unmapped_to: list[MappingEntry] = []
+
+    for idx in sorted(by_index):
+        group = by_index[idx]
+        from_entries = [e for e in group if e.side == "from"]
+        to_entries = [e for e in group if e.side == "to"]
+        for f, t in zip(from_entries, to_entries):
+            pairs.append((f, t))
+        unmapped_from.extend(from_entries[len(to_entries):])
+        unmapped_to.extend(to_entries[len(from_entries):])
+
+    return AtomMapping(pairs=pairs, unmapped_from=unmapped_from, unmapped_to=unmapped_to)
+
+
+_ELEMENT_COLORS: dict[str, str] = {
+    "C": "#e3f2fd",
+    "N": "#e8f5e9",
+    "O": "#fce4ec",
+    "P": "#fff3e0",
+    "S": "#f3e5f5",
+    "H": "#f5f5f5",
+}
+
+_DEFAULT_ELEMENT_COLOR = "#fafafa"
+
+
+def _element_color(element: str) -> str:
+    return _ELEMENT_COLORS.get(element, _DEFAULT_ELEMENT_COLOR)
+
+
+def _atom_label(entry: MappingEntry) -> str:
+    return f"{entry.element}#{entry.element_index}"
+
+
+@dataclass
+class AtomMapping:
+    """Structured atom-to-atom mapping for display in Jupyter notebooks.
+
+    Attributes:
+        pairs: List of ``(from_entry, to_entry)`` tuples sharing the same
+            ``rdt_atom_index``.  Sorted by RDT atom index.
+        unmapped_from: Atoms present only on the reactant side.
+        unmapped_to: Atoms present only on the product side.
+        rxn_name: Optional reaction name for display headers.
+    """
+
+    pairs: list[tuple[MappingEntry, MappingEntry]]
+    unmapped_from: list[MappingEntry]
+    unmapped_to: list[MappingEntry]
+    rxn_name: str = ""
+
+    def __str__(self) -> str:
+        return self._format_text()
+
+    def _format_text(self) -> str:
+        if not self.pairs and not self.unmapped_from and not self.unmapped_to:
+            return "No atom pairs."
+
+        lines: list[str] = []
+        if self.rxn_name:
+            lines.append(f"=== {self.rxn_name} ===")
+        lines.append(self.summary())
+        lines.append("")
+
+        header = f"{'RDT#':>5}  {'From':<35} ->  {'To':<35}"
+        sep = "-" * len(header)
+        lines.append(header)
+        lines.append(sep)
+
+        for f, t in self.pairs:
+            from_tag = f"{f.species_id} {_atom_label(f)}"
+            to_tag = f"{t.species_id} {_atom_label(t)}"
+            lines.append(f"{f.rdt_atom_index:>5}  {from_tag:<35} ->  {to_tag:<35}")
+
+        if self.unmapped_from:
+            lines.append("")
+            lines.append("Unmapped reactant-side atoms:")
+            for e in self.unmapped_from:
+                lines.append(f"  {e.rdt_atom_index:>5}  {e.species_id} {_atom_label(e)}")
+        if self.unmapped_to:
+            lines.append("")
+            lines.append("Unmapped product-side atoms:")
+            for e in self.unmapped_to:
+                lines.append(f"  {e.rdt_atom_index:>5}  {e.species_id} {_atom_label(e)}")
+
+        return "\n".join(lines)
+
+    def _repr_html_(self) -> str:
+        return self._format_html()
+
+    def _format_html(self) -> str:
+        parts: list[str] = [
+            '<div style="font-family: monospace; margin: 8px 0;">'
+        ]
+
+        # Title
+        title = self.rxn_name or "Atom Mapping"
+        parts.append(f"<strong>{escape(title)}</strong><br/>")
+        parts.append(f"<em>{escape(self.summary())}</em>")
+
+        if not self.pairs and not self.unmapped_from and not self.unmapped_to:
+            parts.append("<p>No atom pairs.</p>")
+            parts.append("</div>")
+            return "".join(parts)
+
+        # Build groups: consecutive pairs sharing (from_species, to_species)
+        groups: list[tuple[str, str, list[tuple[MappingEntry, MappingEntry]]]] = []
+        current_from_species = ""
+        current_to_species = ""
+        current_group: list[tuple[MappingEntry, MappingEntry]] = []
+
+        for f, t in self.pairs:
+            if f.species_id != current_from_species or t.species_id != current_to_species:
+                if current_group:
+                    groups.append((current_from_species, current_to_species, current_group))
+                current_from_species = f.species_id
+                current_to_species = t.species_id
+                current_group = []
+            current_group.append((f, t))
+        if current_group:
+            groups.append((current_from_species, current_to_species, current_group))
+
+        # Table
+        parts.append('<table style="border-collapse: collapse; width: auto;">')
+        # Header
+        parts.append(
+            '<tr style="border-bottom: 2px solid #ccc;">'
+            '<th style="padding: 4px 10px; text-align: right;">#</th>'
+            '<th style="padding: 4px 10px; text-align: left;">Reactant</th>'
+            '<th style="padding: 4px 6px;"></th>'
+            '<th style="padding: 4px 10px; text-align: left;">Product</th>'
+            "</tr>"
+        )
+
+        for from_species, to_species, group in groups:
+            # Group header row
+            parts.append(
+                '<tr style="border-top: 1px solid #ddd; background: #f0f0f0;">'
+                f'<td colspan="4" style="padding: 3px 10px; font-weight: bold; font-size: 0.9em;">'
+                f"{escape(from_species)} &rarr; {escape(to_species)}</td>"
+                "</tr>"
+            )
+            for i, (f, t) in enumerate(group, 1):
+                color_from = _element_color(f.element)
+                color_to = _element_color(t.element)
+                parts.append(
+                    "<tr>"
+                    f'<td style="padding: 2px 10px; text-align: right; color: #666;">{i}</td>'
+                    f'<td style="padding: 2px 10px; background: {color_from};">'
+                    f"{escape(_atom_label(f))}</td>"
+                    f'<td style="padding: 2px 6px;">&rarr;</td>'
+                    f'<td style="padding: 2px 10px; background: {color_to};">'
+                    f"{escape(_atom_label(t))}</td>"
+                    "</tr>"
+                )
+
+        parts.append("</table>")
+
+        # Unmapped sections
+        if self.unmapped_from:
+            parts.append(
+                f'<p style="color: #c00; font-size: 0.85em;">'
+                f"{len(self.unmapped_from)} unmapped reactant-side atom(s)</p>"
+            )
+        if self.unmapped_to:
+            parts.append(
+                f'<p style="color: #c00; font-size: 0.85em;">'
+                f"{len(self.unmapped_to)} unmapped product-side atom(s)</p>"
+            )
+
+        parts.append("</div>")
+        return "".join(parts)
+
+    def summary(self) -> str:
+        """Return a one-line summary: count + element breakdown."""
+        if not self.pairs and not self.unmapped_from and not self.unmapped_to:
+            prefix = f"{self.rxn_name}: " if self.rxn_name else ""
+            return f"{prefix}No atom pairs."
+
+        counts: Counter[str] = Counter()
+        for f, _ in self.pairs:
+            counts[f.element] += 1
+        for e in self.unmapped_from:
+            counts[e.element] += 1
+        for e in self.unmapped_to:
+            counts[e.element] += 1
+
+        elem_parts = [f"{counts[el]} {el}" for el in sorted(counts)]
+        elem_str = ", ".join(elem_parts)
+
+        unmapped_count = len(self.unmapped_from) + len(self.unmapped_to)
+        prefix = f"{self.rxn_name}: " if self.rxn_name else ""
+        suffix = f", {unmapped_count} unmapped" if unmapped_count else ""
+        return f"{prefix}{len(self.pairs)} atom pairs ({elem_str}){suffix}"
+
+
 def run_rdt_java(smiles: str, rdt_jar: Path, cwd: Path) -> None:
     """Run the RDT Java tool to generate an atom-atom mapped `.rxn` file.
 
@@ -706,6 +958,109 @@ def process_reaction(rxn_dir: Path, rdt_jar: Path) -> tuple[bool, str, str]:
         return False, "", ""
 
     return postprocess_reaction(rxn_dir)
+
+
+# ── Pipeline variants for display ─────────────────────────────────────
+
+
+def run_rdt_and_map_from_folder(
+    rxn_dir: Path,
+    rdt_jar: Path | None = None,
+) -> AtomMapping:
+    """Process a reaction folder and return an ``AtomMapping`` for Jupyter.
+
+    If *rdt_jar* is ``None`` the folder must already contain
+    ``ECBLAST_smiles_AAM.rxn`` (and all species-lookup files).  If
+    *rdt_jar* is provided, RDT is run first.
+
+    Args:
+        rxn_dir: Path to a reaction subfolder containing ``rxn.smiles``
+            and the species-lookup files.
+        rdt_jar: Optional path to the RDT JAR.  When ``None`` only
+            postprocessing is performed.
+
+    Returns:
+        ``AtomMapping`` with the paired transitions ready for display.
+    """
+    if rdt_jar is not None:
+        _success, _, _ = process_reaction(rxn_dir, rdt_jar)
+        if not _success:
+            raise RuntimeError(f"RDT pipeline failed for {rxn_dir.name}")
+    else:
+        _success, _mapping_lines, _ = postprocess_reaction(rxn_dir)
+        if not _success:
+            raise RuntimeError(
+                f"Postprocessing failed for {rxn_dir.name} "
+                f"(missing RXN file or species lookup?)"
+            )
+
+    mapping_lines_path = rxn_dir / "mapping_lines.txt"
+    if not mapping_lines_path.exists():
+        raise RuntimeError(f"mapping_lines.txt not found in {rxn_dir}")
+
+    raw_lines = mapping_lines_path.read_text().strip().split("\n")
+    entries = [
+        e for line in raw_lines
+        if line.strip() and (e := _parse_mapping_line(line)) is not None
+    ]
+
+    mapping = pair_entries(entries)
+    mapping.rxn_name = rxn_dir.name
+    return mapping
+
+
+def run_rdt_and_map(
+    smiles: str,
+    rdt_jar: Path,
+    rxn_dir: Path | None = None,
+) -> tuple[AtomMapping, RDTResult]:
+    """Run RDT on a SMILES string and return ``AtomMapping`` + ``RDTResult``.
+
+    Requires species-lookup files (``species_id_inchikey.txt``,
+    ``from_species_with_cmp``, ``to_species_with_cmp``) in *rxn_dir*.
+    If *rxn_dir* is ``None``, a temporary directory is created for RDT
+    output but species identification is skipped (generic molecule labels
+    are used).
+
+    Args:
+        smiles: Reaction SMILES string.
+        rdt_jar: Path to the RDT JAR file.
+        rxn_dir: Optional path to a reaction folder with species files.
+            When ``None``, generic ``Mol_N`` labels are used.
+
+    Returns:
+        ``(AtomMapping, RDTResult)`` tuple.
+    """
+    result = run_rdt_jupyter(smiles, rdt_jar)
+
+    if rxn_dir is not None:
+        mapping = run_rdt_and_map_from_folder(rxn_dir)
+        return mapping, result
+
+    from_num, to_num = parse_rxn_header(result.rxn)
+    mol_blocks = split_rxn_to_mols(result.rxn)
+    all_entries: list[MappingEntry] = []
+    counter = 1
+
+    for mol_block in mol_blocks:
+        rdt_index = parse_mdl_atom_table(mol_block)
+        try:
+            inchi_text = obabel_to_inchi(mol_block)
+            inchi_order = parse_inchi_atom_order(inchi_text)
+        except (SubprocessError, Exception):
+            inchi_order = list(range(1, len(rdt_index) + 1))
+
+        species_id = f"Mol_{counter}"
+        compartment = ""
+        side = "from" if counter <= from_num else "to"
+        entries = build_mapping_entries(
+            rdt_index, inchi_order, species_id, compartment, side
+        )
+        all_entries.extend(entries)
+        counter += 1
+
+    mapping = pair_entries(all_entries)
+    return mapping, result
 
 
 def main():
