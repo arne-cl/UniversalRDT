@@ -308,11 +308,11 @@ def build_reaction_view(rxn_dir: Path) -> ReactionView:
         ``ReactionView`` ready for display.
 
     Raises:
-        RuntimeError: If processing fails.
+        FileNotFoundError: If the RXN file is missing or empty.
+        ValueError: If the RXN file has no ``$MOL`` marker.
+        SubprocessError: If obabel fails.
     """
     result = process_reaction_data(rxn_dir)
-    if result is None:
-        raise RuntimeError(f"Failed to process reaction folder: {rxn_dir}")
 
     molecule_views = [_build_molecule_view(mol) for mol in result.molecules]
     summary = _compute_summary(result.all_entries)

@@ -613,7 +613,7 @@ def obabel_to_inchikey(mol_block: str) -> str:
         raise SubprocessError(cmd, result.returncode, result.stdout, result.stderr)
     return result.stdout.decode().strip()
 
-def process_reaction_data(rxn_dir: Path) -> ReactionProcessingResult | None:
+def process_reaction_data(rxn_dir: Path) -> ReactionProcessingResult:
     """Process a reaction folder and return structured data (no file writes).
 
     Reads the RXN file and species-lookup files, runs obabel for InChI
@@ -621,103 +621,103 @@ def process_reaction_data(rxn_dir: Path) -> ReactionProcessingResult | None:
     a structured `ReactionProcessingResult` that can be used for display
     or written to disk.
 
-    Returns ``None`` on error (message printed to stderr).
-
     Args:
         rxn_dir: Path to a reaction subfolder (must contain
             ``ECBLAST_smiles_AAM.rxn`` and species-lookup files).
 
     Returns:
-        ``ReactionProcessingResult`` on success, ``None`` on error.
+        ``ReactionProcessingResult`` on success.
+
+    Raises:
+        FileNotFoundError: If the RXN file is missing or empty.
+        ValueError: If the RXN file has no ``$MOL`` marker.
+        SubprocessError: If obabel fails.
     """
-    try:
-        rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
-        if not rxn_file.exists() or rxn_file.stat().st_size == 0:
-            return None
+    rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
+    if not rxn_file.exists() or rxn_file.stat().st_size == 0:
+        raise FileNotFoundError(
+            f"RXN file missing or empty in {rxn_dir}"
+        )
 
-        rxn_text = rxn_file.read_text()
-        if "$MOL" not in rxn_text:
-            return None
+    rxn_text = rxn_file.read_text()
+    if "$MOL" not in rxn_text:
+        raise ValueError(
+            f"No $MOL marker in RXN file in {rxn_dir}"
+        )
 
-        smiles_path = rxn_dir / "rxn.smiles"
-        smiles = smiles_path.read_text().strip() if smiles_path.exists() else ""
+    smiles_path = rxn_dir / "rxn.smiles"
+    smiles = smiles_path.read_text().strip() if smiles_path.exists() else ""
 
-        from_num, to_num = parse_rxn_header(rxn_text)
-        mol_blocks = split_rxn_to_mols(rxn_text)
+    from_num, to_num = parse_rxn_header(rxn_text)
+    mol_blocks = split_rxn_to_mols(rxn_text)
 
-        species_inchikey_text = (rxn_dir / "species_id_inchikey.txt").read_text()
-        inchikey_table = load_inchikey_table(species_inchikey_text)
+    species_inchikey_text = (rxn_dir / "species_id_inchikey.txt").read_text()
+    inchikey_table = load_inchikey_table(species_inchikey_text)
 
-        from_species_text = (rxn_dir / "from_species_with_cmp").read_text()
-        to_species_text = (rxn_dir / "to_species_with_cmp").read_text()
-        from_species = load_species_list(from_species_text)
-        to_species = load_species_list(to_species_text)
+    from_species_text = (rxn_dir / "from_species_with_cmp").read_text()
+    to_species_text = (rxn_dir / "to_species_with_cmp").read_text()
+    from_species = load_species_list(from_species_text)
+    to_species = load_species_list(to_species_text)
 
-        molecules: list[MoleculeProcessingResult] = []
-        counter = 1
+    molecules: list[MoleculeProcessingResult] = []
+    counter = 1
 
-        for i, mol_block in enumerate(mol_blocks):
-            rdt_index = parse_mdl_atom_table(mol_block)
-            inchi_text = obabel_to_inchi(mol_block)
-            inchikey = obabel_to_inchikey(mol_block)
+    for i, mol_block in enumerate(mol_blocks):
+        rdt_index = parse_mdl_atom_table(mol_block)
+        inchi_text = obabel_to_inchi(mol_block)
+        inchikey = obabel_to_inchikey(mol_block)
 
-            if not inchikey:
-                counter += 1
-                continue
-
-            matches = lookup_species(inchikey, inchikey_table)
-            if not matches:
-                counter += 1
-                continue
-
-            if counter <= from_num:
-                species_id = find_species_with_cmp_multi(matches, from_species)
-                side = "from"
-            else:
-                species_id = find_species_with_cmp_multi(matches, to_species)
-                side = "to"
-
-            if species_id is None:
-                counter += 1
-                continue
-
-            compartment = extract_compartment(species_id)
-            inchi_order = parse_inchi_atom_order(inchi_text)
-            entries = build_mapping_entries(rdt_index, inchi_order, species_id, compartment, side)
-
-            molecules.append(MoleculeProcessingResult(
-                mol_num=i + 1,
-                rdt_index=rdt_index,
-                inchi_order=inchi_order,
-                entries=entries,
-                species_id=species_id,
-                compartment=compartment,
-                side=side,
-            ))
+        if not inchikey:
             counter += 1
+            continue
 
-        all_entries = [e for mol in molecules for e in mol.entries]
-        mapping_lines_text = (
-            "\n".join(f"{e.rdt_atom_index}\t{e.side}\t{e.label}" for e in all_entries)
-            + ("\n" if all_entries else "")
-        )
-        mapping_text = assemble_mapping(all_entries)
+        matches = lookup_species(inchikey, inchikey_table)
+        if not matches:
+            counter += 1
+            continue
 
-        return ReactionProcessingResult(
-            rxn_name=rxn_dir.name,
-            smiles=smiles,
-            from_num=from_num,
-            to_num=to_num,
-            molecules=molecules,
-            mapping_lines_text=mapping_lines_text,
-            mapping_text=mapping_text,
-        )
-    except SubprocessError as e:
-        print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
-        return None
-    except Exception as e:
-        print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
-        return None
+        if counter <= from_num:
+            species_id = find_species_with_cmp_multi(matches, from_species)
+            side = "from"
+        else:
+            species_id = find_species_with_cmp_multi(matches, to_species)
+            side = "to"
+
+        if species_id is None:
+            counter += 1
+            continue
+
+        compartment = extract_compartment(species_id)
+        inchi_order = parse_inchi_atom_order(inchi_text)
+        entries = build_mapping_entries(rdt_index, inchi_order, species_id, compartment, side)
+
+        molecules.append(MoleculeProcessingResult(
+            mol_num=i + 1,
+            rdt_index=rdt_index,
+            inchi_order=inchi_order,
+            entries=entries,
+            species_id=species_id,
+            compartment=compartment,
+            side=side,
+        ))
+        counter += 1
+
+    all_entries = [e for mol in molecules for e in mol.entries]
+    mapping_lines_text = (
+        "\n".join(f"{e.rdt_atom_index}\t{e.side}\t{e.label}" for e in all_entries)
+        + ("\n" if all_entries else "")
+    )
+    mapping_text = assemble_mapping(all_entries)
+
+    return ReactionProcessingResult(
+        rxn_name=rxn_dir.name,
+        smiles=smiles,
+        from_num=from_num,
+        to_num=to_num,
+        molecules=molecules,
+        mapping_lines_text=mapping_lines_text,
+        mapping_text=mapping_text,
+    )
 
 
 def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str, str]:
@@ -727,18 +727,23 @@ def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str, str]:
     files (``mapping.txt`` and ``mapping_lines.txt``) to disk and returns
     flat strings for backward compatibility.
 
+    On failure, prints a message to stderr and returns ``(False, "", "")``
+    without writing any output files.
+
     Args:
         rxn_dir: Path to a reaction subfolder inside ``reaction_intermediates/``.
 
     Returns:
         ``(success, mapping_lines_text, mapping_text)``.
     """
-    result = process_reaction_data(rxn_dir)
-    mapping_text = result.mapping_text if result is not None else ""
-    mapping_lines_text = result.mapping_lines_text if result is not None else ""
-    (rxn_dir / "mapping.txt").write_text(mapping_text)
-    (rxn_dir / "mapping_lines.txt").write_text(mapping_lines_text)
-    return True, mapping_lines_text, mapping_text
+    try:
+        result = process_reaction_data(rxn_dir)
+    except Exception as e:
+        print(f"Error processing {rxn_dir.name}: {e}", file=sys.stderr)
+        return False, "", ""
+    (rxn_dir / "mapping.txt").write_text(result.mapping_text)
+    (rxn_dir / "mapping_lines.txt").write_text(result.mapping_lines_text)
+    return True, result.mapping_lines_text, result.mapping_text
 
 
 def process_reaction(rxn_dir: Path, rdt_jar: Path) -> tuple[bool, str, str]:

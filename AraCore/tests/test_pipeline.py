@@ -29,6 +29,8 @@ KNOWN_MAPPING_LINES_DIFFS = {
     "PSII_h", "Urease_m", "cplx5_m",
 }
 
+KNOWN_NO_RXN = {"Bio_CLim", "Bio_NLim", "Bio_opt", "PSI_h", "cplx3_m", "cplx4_m", "rxn_Ids"}
+
 
 def _extract_rxn_from_zip(rxn_name, dest_dir):
     prefix = f"reaction_intermediates/{rxn_name}/"
@@ -99,6 +101,13 @@ def test_python_matches_bash_for_one_reaction(tmp_path, rxn_name):
         _strip_generated_files(rxn_dir)
 
     success, mapping_lines_text, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
+
+    if rxn_name in KNOWN_NO_RXN:
+        assert success is False
+        assert mapping_lines_text == ""
+        assert mapping_text == ""
+        return
+
     py_mapping = (rxn_dir / "mapping.txt").read_text()
     assert mapping_text == py_mapping
 
@@ -143,10 +152,18 @@ def test_mapping_txt_matches_file_on_disk(tmp_path, rxn_name):
     _strip_generated_files(rxn_dir)
 
     success, mapping_lines_text, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
-    assert success is True
 
-    actual = (rxn_dir / "mapping.txt").read_text()
-    assert mapping_text == actual
+    if rxn_name in KNOWN_NO_RXN:
+        assert success is False
+        assert mapping_lines_text == ""
+        assert mapping_text == ""
+        assert not (rxn_dir / "mapping.txt").exists()
+        assert not (rxn_dir / "mapping_lines.txt").exists()
+    else:
+        assert success is True
+
+        actual = (rxn_dir / "mapping.txt").read_text()
+        assert mapping_text == actual
 
 
 def _bash_pipeline_assemble(mapping_lines_text):

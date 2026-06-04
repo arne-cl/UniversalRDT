@@ -39,15 +39,17 @@ class TestMoleculeProcessingResult:
 
 
 class TestProcessReactionData:
-    """process_reaction_data returns structured Result or None."""
+    """process_reaction_data returns structured Result or raises on error."""
 
-    def test_returns_none_for_nonexistent_dir(self, tmp_path):
-        assert run_rdt.process_reaction_data(tmp_path / "nope") is None
+    def test_raises_for_nonexistent_dir(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            run_rdt.process_reaction_data(tmp_path / "nope")
 
-    def test_returns_none_for_empty_dir(self, tmp_path):
+    def test_raises_for_empty_dir(self, tmp_path):
         d = tmp_path / "empty"
         d.mkdir()
-        assert run_rdt.process_reaction_data(d) is None
+        with pytest.raises(FileNotFoundError):
+            run_rdt.process_reaction_data(d)
 
     @pytest.mark.integration
     def test_returns_reaction_processing_result(self, sample_rxn_dir):
