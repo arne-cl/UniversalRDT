@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
@@ -40,6 +41,20 @@ class SubprocessError(Exception):
             f"stdout:\n{stdout_str}\n"
             f"stderr:\n{stderr_str}"
         )
+
+
+@dataclass(frozen=True)
+class MappingEntry:
+    rdt_atom_index: int
+    side: str
+    species_id: str
+    element: str
+    element_index: int
+
+    @property
+    def label(self) -> str:
+        sep = "=" if self.side == "from" else ","
+        return f"{self.species_id}:{self.element}#{self.element_index}{sep}"
 
 
 def parse_rxn_header(rxn_text: str) -> tuple[int, int]:
@@ -273,81 +288,61 @@ def find_species_with_cmp_multi(species_ids: list[str], cmp_list: list[str]) -> 
     return None
 
 
-def build_mapping_lines(
+def build_mapping_entries(
     rdt_index: list[tuple[str, int]],
     inchi_order: list[int],
     species_id: str,
     side: str,
-) -> list[str]:
-    """Build individual mapping-line entries for one molecule.
+) -> list[MappingEntry]:
+    """Build structured mapping entries for one molecule.
 
-    Walks the InChI atom order, tracks an element-wise counter (C#1,
-    C#2, ..., N#1, ...), and emits one tab-separated line per atom in the
-    format::
-
-        <rdt_atom_index>\\t<from|to>\\t<species>:<element>#<counter><separator>
-
-    where the separator is `=` for reactants (from-side) and `,`
-    for products (to-side).
-
-    Replaces the inner `for rdt_line in $inchi_index` loop in the
-    bash script.
+    Walks the InChI atom order, tracks an element-wise counter via
+    ``collections.Counter`` (C#1, C#2, ..., N#1, ...), and returns
+    one :class:`MappingEntry` per atom.
 
     Args:
-        rdt_index: Per-atom `(element, global_atom_index)` from
-            `parse_mdl_atom_table`.
+        rdt_index: Per-atom ``(element, global_atom_index)`` from
+            :func:`parse_mdl_atom_table`.
         inchi_order: 1-based atom-table line numbers in InChI order,
-            from `parse_inchi_atom_order`.
-        species_id: Compartmented species identifier (e.g. "M_GAP[h]").
-        side: "from" for reactants, "to" for products.
+            from :func:`parse_inchi_atom_order`.
+        species_id: Compartmented species identifier (e.g. ``"M_GAP[h]"``).
+        side: ``"from"`` for reactants, ``"to"`` for products.
 
     Returns:
-        List of formatted mapping-line strings.
+        List of :class:`MappingEntry` objects.
     """
-    mapping_end = "=" if side == "from" else ","
-    lines = []
-    last_element = None
-    atom_counter = 0
+    counts: Counter[str] = Counter()
+    entries: list[MappingEntry] = []
     for rdt_line_num in inchi_order:
         element, mapping_index = rdt_index[rdt_line_num - 1]
-        if last_element == element:
-            atom_counter += 1
-        else:
-            last_element = element
-            atom_counter = 1
-        line = f"{mapping_index}\t{side}\t{species_id}:{element}#{atom_counter}{mapping_end}"
-        lines.append(line)
-    return lines
+        counts[element] += 1
+        entries.append(MappingEntry(
+            rdt_atom_index=mapping_index,
+            side=side,
+            species_id=species_id,
+            element=element,
+            element_index=counts[element],
+        ))
+    return entries
 
 
-def assemble_mapping(mapping_lines_text: str) -> str:
-    """Assemble the final `mapping.txt` content from individual lines.
+def assemble_mapping(entries: list[MappingEntry]) -> str:
+    """Assemble the final mapping string from structured entries.
 
-    Replaces `sort -n mapping_lines.txt | grep -v ':H#' | cut -f3 |
-    tr '\\n' ' ' | sed 's/ //g; s/,$//'`.  Lines are sorted
-    numerically by the first column (RDT atom index), hydrogen atoms
-    (`:H#`) are dropped, and the third column entries are concatenated
-    into a single comma-separated string.
+    Sorts entries by ``rdt_atom_index``, drops hydrogen atoms, and
+    concatenates the remaining labels into a single string.
 
     Args:
-        mapping_lines_text: Newline-separated mapping lines as produced
-            by `build_mapping_lines`.
+        entries: :class:`MappingEntry` objects from multiple calls to
+            :func:`build_mapping_entries`.
 
     Returns:
-        Single-line mapping string without trailing newline, e.g.
-        "M_GAP[h]:O#1=M_FBP[h]:O#2,M_GAP[h]:C#1=...".
+        Single-line mapping string, e.g.
+        ``"M_GAP[h]:O#1=M_FBP[h]:O#2,M_GAP[h]:C#1=..."``.
     """
-    lines = mapping_lines_text.strip().split("\n")
-    lines = [l for l in lines if l.strip()]
-    lines.sort(key=lambda l: int(l.split("\t")[0]))
-    parts = []
-    for line in lines:
-        if ":H#" in line:
-            continue
-        fields = line.split("\t")
-        if len(fields) >= 3:
-            parts.append(fields[2])
-    return "".join(parts).replace(" ", "").rstrip(",")
+    non_h = [e for e in entries if e.element != "H"]
+    non_h.sort(key=lambda e: e.rdt_atom_index)
+    return "".join(e.label for e in non_h).replace(" ", "").rstrip(",")
 
 
 def run_rdt_java(smiles: str, rdt_jar: Path, cwd: Path) -> None:
@@ -551,7 +546,7 @@ def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str, str]:
         from_species = load_species_list(from_species_text)
         to_species = load_species_list(to_species_text)
 
-        all_mapping_lines = []
+        all_entries: list[MappingEntry] = []
         counter = 1
 
         for i, mol_block in enumerate(mol_blocks):
@@ -593,16 +588,19 @@ def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str, str]:
 
             inchi_order = parse_inchi_atom_order(inchi_text)
 
-            lines = build_mapping_lines(rdt_index, inchi_order, species_id, mapping_side)
-            all_mapping_lines.extend(lines)
+            entries = build_mapping_entries(rdt_index, inchi_order, species_id, mapping_side)
+            all_entries.extend(entries)
 
             counter += 1
 
-        mapping_lines_text = "\n".join(all_mapping_lines) + "\n"
+        mapping_lines_text = (
+            "\n".join(f"{e.rdt_atom_index}\t{e.side}\t{e.label}" for e in all_entries)
+            + ("\n" if all_entries else "")
+        )
         mapping_lines_path = rxn_dir / "mapping_lines.txt"
         mapping_lines_path.write_text(mapping_lines_text)
 
-        mapping_text = assemble_mapping("\n".join(all_mapping_lines))
+        mapping_text = assemble_mapping(all_entries)
         (rxn_dir / "mapping.txt").write_text(mapping_text)
 
         return True, mapping_lines_text, mapping_text

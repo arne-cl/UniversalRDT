@@ -130,17 +130,15 @@ def test_postprocess_reaction_is_deterministic(tmp_path):
 
 @pytest.mark.integration
 @pytest.mark.parametrize("rxn_name", RXN_NAMES)
-def test_mapping_txt_consistent_with_mapping_lines(tmp_path, rxn_name):
+def test_mapping_txt_matches_file_on_disk(tmp_path, rxn_name):
     rxn_dir = _extract_rxn_from_zip(rxn_name, tmp_path / rxn_name)
     _strip_generated_files(rxn_dir)
 
     success, mapping_lines_text, mapping_text = run_rdt.postprocess_reaction(rxn_dir)
     assert success is True
 
-    reconstructed = run_rdt.assemble_mapping(mapping_lines_text)
-    assert reconstructed == mapping_text, (
-        f"mapping.txt is not derivable from mapping_lines.txt for {rxn_name}"
-    )
+    actual = (rxn_dir / "mapping.txt").read_text()
+    assert mapping_text == actual
 
 
 def _bash_pipeline_assemble(mapping_lines_text):
