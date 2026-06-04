@@ -30,9 +30,8 @@ _COMPARTMENT_RE = re.compile(r"\[([^\]]+)\]")
 def extract_compartment(species_id: str) -> str:
     """Extract the compartment tag from a compartmented species ID.
 
-    ``"M_GAP[h]"`` → ``"h"``, ``"M_Glc[c]"`` → ``"c"``.
-    Returns ``""`` for multi-species strings (containing spaces) or
-    strings without a bracket tag.
+    "M_GAP[h]" -> "h", "M_Glc[c]" -> "c".
+    Returns "" for multi-species strings (containing spaces) or strings without a bracket tag.
     """
     if " " in species_id:
         return ""
@@ -42,7 +41,6 @@ def extract_compartment(species_id: str) -> str:
 
 class SubprocessError(Exception):
     """Raised when a subprocess exits non-zero, capturing full output."""
-
     def __init__(self, cmd, returncode, stdout, stderr):
         self.cmd = cmd
         self.returncode = returncode
@@ -62,15 +60,13 @@ class SubprocessError(Exception):
 class MappingEntry:
     """A single atom's role in the atom-to-atom mapping between reaction sides.
 
-    In biochemical atom mapping, RDT assigns each atom a global index across
-    the whole reaction.  InChI provides a canonical element-wise ordering
-    (all C's, then all N's, ...).  A MappingEntry connects one atom's RDT
-    index to a species-specific label like ``M_GAP[h]:C#1``, recording which
-    metabolite the atom belongs to, which element it is, and its position
-    in InChI's element-wise numbering.
+    RDT assigns each atom a global index across the whole reaction.
+    InChI provides a canonical element-wise ordering (all C's, then all N's etc.).
+    A MappingEntry connects one atom's RDT index to a species-specific label
+    of the form metabolite_name[compartment]:element#inchi_element_wise_atom_position,
+    e.g. `M_GAP[h]:C#1`
 
-    Example::
-
+    Example:
         >>> MappingEntry(2, "from", "M_GAP[h]", "h", "C", 1)
         MappingEntry(rdt_atom_index=2, side='from', species_id='M_GAP[h]',
                      compartment='h', element='C', element_index=1)
@@ -79,18 +75,14 @@ class MappingEntry:
 
     Attributes:
         rdt_atom_index: Global atom index assigned by RDT across the reaction.
-        side: ``"from"`` (reactant) or ``"to"`` (product).  Determines the
-            separator in :attr:`label`: ``=`` for from, ``,`` for to.
-        species_id: Compartmented species identifier, e.g. ``"M_GAP[h]"``.
-            For multi-species matches (a known substring-matching bug),
-            this may be a space-joined string like ``"M_Pi[c] M_Pi[h]"``.
-        compartment: Subcellular compartment tag, e.g. ``"h"`` for chloroplast,
-            ``"c"`` for cytosol, ``"m"`` for mitochondria.  Empty string when
-            species_id is multi-species and no single compartment applies.
-        element: Chemical element symbol, e.g. ``"C"``, ``"O"``, ``"P"``.
+        side: "from" (reactant) or "to" (product). Determines the
+            separator in `label`: `=` for from, `,` for to.
+        species_id: Compartmented species identifier, e.g. "M_GAP[h]".
+        compartment: Subcellular compartment tag, e.g. "h" for chloroplast,
+            "c" for cytosol, "m" for mitochondria.
+        element: Chemical element symbol, e.g. "C" or "O".
         element_index: 1-based counter within this element (C#1, C#2, N#1, ...).
     """
-
     rdt_atom_index: int
     side: str
     species_id: str
@@ -292,10 +284,6 @@ def load_species_list(text: str) -> list[str]:
 def find_species_with_cmp(species_no_cmp: str, cmp_list: list[str]) -> str | None:
     """Find compartmented species IDs whose base name matches exactly.
 
-    Matches where the compartmented entry starts with the base species
-    followed by ``[`` (e.g. ``"M_GAP"`` matches ``"M_GAP[h]"`` but not
-    ``"M_GAP_foo[h]"``, avoiding substring false positives).
-
     Args:
         species_no_cmp: Species ID without compartment (e.g. "M_GAP").
         cmp_list: Species IDs with compartment tags (e.g. `["M_GAP[h]"]`).
@@ -314,10 +302,10 @@ def find_species_with_cmp_multi(species_ids: list[str], cmp_list: list[str]) -> 
     """Find compartmented species IDs matching any of several base IDs via
     exact prefix match.
 
-    When ``lookup_species`` returns multiple candidates (e.g. both
-    ``M_Glc`` and ``M_starch1`` share the same InChIKey), each candidate
-    is matched against the compartmented list using ``startswith``
-    (e.g. ``"M_Glc"`` matches ``"M_Glc[c]"`` but not ``"M_Glc-SeA[c]"``).
+    When `lookup_species` returns multiple candidates (e.g. both
+    `M_Glc` and `M_starch1` share the same InChIKey), each candidate
+    is matched against the compartmented list using `startswith`
+    (e.g. "M_Glc" matches "M_Glc[c]" but not "M_Glc-SeA[c]").
     All unique matches are space-joined.
 
     Args:
@@ -325,7 +313,7 @@ def find_species_with_cmp_multi(species_ids: list[str], cmp_list: list[str]) -> 
         cmp_list: Species IDs with compartment tags.
 
     Returns:
-        Space-joined string of all unique matching entries, or ``None``.
+        Space-joined string of all unique matching entries, or `None`.
     """
     all_matches = []
     for sid in species_ids:
@@ -351,12 +339,10 @@ def build_mapping_entries(
     into species-labeled atom references suitable for assembly into the final
     mapping string.
 
-    For each atom in InChI order, creates a :class:`MappingEntry` with a
-    per-element counter (C#1, C#2, ..., N#1, ...) tracked via
-    ``collections.Counter``.
+    For each atom in InChI order, creates a `MappingEntry` with a per-element
+    counter (C#1, C#2, ..., N#1, ...).
 
-    Example::
-
+    Example:
         >>> rdt_index = [("C", 2), ("C", 5), ("O", 1)]
         >>> inchi_order = [1, 2, 3]  # InChI: C, C, O
         >>> entries = build_mapping_entries(rdt_index, inchi_order, "M_X[h]", "h", "from")
@@ -366,17 +352,17 @@ def build_mapping_entries(
         'M_X[h]:O#1='
 
     Args:
-        rdt_index: Per-atom ``(element, global_atom_index)`` from
-            :func:`parse_mdl_atom_table`.
+        rdt_index: Per-atom `(element, global_atom_index)` from
+            `parse_mdl_atom_table`.
         inchi_order: 1-based atom-table line numbers in InChI order,
-            from :func:`parse_inchi_atom_order`.
-        species_id: Compartmented species identifier (e.g. ``"M_GAP[h]"``).
-        compartment: Subcellular compartment (e.g. ``"h"``).  Empty string
+            from `parse_inchi_atom_order`.
+        species_id: Compartmented species identifier (e.g. `"M_GAP[h]"`).
+        compartment: Subcellular compartment (e.g. `"h"`).  Empty string
             when species_id is multi-species.
-        side: ``"from"`` for reactants, ``"to"`` for products.
+        side: `"from"` for reactants, `"to"` for products.
 
     Returns:
-        List of :class:`MappingEntry` objects, one per atom.
+        List of `MappingEntry` objects, one per atom.
     """
     counts: Counter[str] = Counter()
     entries: list[MappingEntry] = []
@@ -401,17 +387,17 @@ def assemble_mapping(entries: list[MappingEntry]) -> str:
     RDT's global atom index, drops hydrogen atoms (which are typically
     not matched between sides), and concatenates the remaining labels.
 
-    The result is a single string encoding the full mapping::
+    The result is a single string encoding the full mapping:
 
         M_GAP[h]:O#1=M_FBP[h]:O#2,M_GAP[h]:C#1=M_FBP[h]:C#5,...
 
-    Reactant atoms are terminated with ``=``, product atoms with ```,``
-    (from :attr:`MappingEntry.label`).  These link across the ``=`` sign
+    Reactant atoms are terminated with `=`, product atoms with `,`
+    (from `MappingEntry.label`).  These link across the `=` sign
     to show which reactant atom maps to which product atom.
 
     Args:
-        entries: :class:`MappingEntry` objects from all molecules, collected
-            across multiple calls to :func:`build_mapping_entries`.
+        entries: `MappingEntry` objects from all molecules, collected
+            across multiple calls to `build_mapping_entries`.
 
     Returns:
         Single-line mapping string.  Empty string if all entries are hydrogen
@@ -491,11 +477,11 @@ def run_rdt_jupyter(
     rdt_jar: Path,
     cwd: Path | None = None,
 ) -> RDTResult:
-    """Run RDT and return an ``RDTResult`` for interactive / Jupyter use.
+    """Run RDT and return an `RDTResult` for interactive / Jupyter use.
 
-    Unlike :func:`run_rdt_java` (which writes into a caller-specified
-    directory and returns ``None``), this function returns the contents
-    of the generated files.  When *cwd* is ``None`` a temporary
+    Unlike `run_rdt_java` (which writes into a caller-specified
+    directory and returns `None`), this function returns the contents
+    of the generated files.  When *cwd* is `None` a temporary
     directory is created automatically.
 
     Args:
@@ -504,7 +490,7 @@ def run_rdt_jupyter(
         cwd: Optional working directory.  Defaults to a temp directory.
 
     Returns:
-        :class:`RDTResult` containing the ``.rxn``, ``.txt`` and ``.png``
+        `RDTResult` containing the `.rxn`, `.txt` and `.png`
         output produced by RDT.
 
     Raises:
@@ -702,9 +688,9 @@ def process_reaction(rxn_dir: Path, rdt_jar: Path) -> tuple[bool, str, str]:
         rdt_jar: Path to the RDT JAR file.
 
     Returns:
-        Same as :func:`postprocess_reaction`: ``tuple[bool, str, str]``
-        ``(success, mapping_lines_text, mapping_text)``.
-        Returns ``(False, "", "")`` if ``rxn.smiles`` is missing
+        Same as `postprocess_reaction`: `tuple[bool, str, str]`
+        `(success, mapping_lines_text, mapping_text)`.
+        Returns `(False, "", "")` if `rxn.smiles` is missing
         or RDT fails.
     """
     rxn_file = rxn_dir / "ECBLAST_smiles_AAM.rxn"
@@ -723,16 +709,9 @@ def process_reaction(rxn_dir: Path, rdt_jar: Path) -> tuple[bool, str, str]:
 
 
 def main():
-    """CLI entry point: iterate over all reaction folders and run the pipeline.
-
-    Supports two modes via flags:
-
-    * **Default** (`python run_rdt.py`): run RDT Java on each reaction
-      then postprocess.
-    * `--postprocess-only`: skip the RDT step and re-derive mapping
-      files from existing `.rxn` output.
-    """
+    """CLI entry point: iterate over all reaction folders and run the pipeline."""
     _script_dir = Path(__file__).resolve().parent
+
     parser = argparse.ArgumentParser(
         description="Run RDT atom mapping pipeline for AraCore reactions"
     )
