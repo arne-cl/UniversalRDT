@@ -16,7 +16,19 @@ from run_rdt import (
 )
 
 
-# ── Dataclasses ──────────────────────────────────────────────────────
+_ELEMENT_COLORS: dict[str, str] = {
+    "C": "#e3f2fd",
+    "N": "#e8f5e9",
+    "O": "#fce4ec",
+    "P": "#fff3e0",
+    "S": "#f3e5f5",
+    "H": "#f5f5f5",
+}
+_DEFAULT_ELEMENT_COLOR = "#fafafa"
+
+
+def _element_color(element: str) -> str:
+    return _ELEMENT_COLORS.get(element, _DEFAULT_ELEMENT_COLOR)
 
 
 @dataclass
@@ -209,27 +221,6 @@ class ReactionView:
         return "".join(parts)
 
 
-# ── Element colors (moved from run_rdt.py) ────────────────────────────
-
-
-_ELEMENT_COLORS: dict[str, str] = {
-    "C": "#e3f2fd",
-    "N": "#e8f5e9",
-    "O": "#fce4ec",
-    "P": "#fff3e0",
-    "S": "#f3e5f5",
-    "H": "#f5f5f5",
-}
-_DEFAULT_ELEMENT_COLOR = "#fafafa"
-
-
-def _element_color(element: str) -> str:
-    return _ELEMENT_COLORS.get(element, _DEFAULT_ELEMENT_COLOR)
-
-
-# ── Helpers ───────────────────────────────────────────────────────────
-
-
 def _atom_label(entry: MappingEntry) -> str:
     return f"{entry.element}#{entry.element_index}"
 
@@ -295,9 +286,7 @@ def _compute_summary(all_entries: list[MappingEntry]) -> str:
     return f"{len(paired)} atom pairs ({', '.join(elem_parts)})"
 
 
-# ── Main entry point ─────────────────────────────────────────────────
-
-
+# main entry point of the module
 def build_reaction_view(rxn_dir: Path) -> ReactionView:
     """Build a ReactionView from a reaction folder.
 
