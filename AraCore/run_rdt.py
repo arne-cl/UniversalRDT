@@ -24,6 +24,21 @@ _N_FIELD = re.compile(
     re.VERBOSE,
 )
 
+_COMPARTMENT_RE = re.compile(r"\[([^\]]+)\]")
+
+
+def extract_compartment(species_id: str) -> str:
+    """Extract the compartment tag from a compartmented species ID.
+
+    ``"M_GAP[h]"`` → ``"h"``, ``"M_Glc[c]"`` → ``"c"``.
+    Returns ``""`` for multi-species strings (containing spaces) or
+    strings without a bracket tag.
+    """
+    if " " in species_id:
+        return ""
+    m = _COMPARTMENT_RE.search(species_id)
+    return m.group(1) if m else ""
+
 
 class SubprocessError(Exception):
     """Raised when a subprocess exits non-zero, capturing full output."""
@@ -45,9 +60,41 @@ class SubprocessError(Exception):
 
 @dataclass(frozen=True)
 class MappingEntry:
+    """A single atom's role in the atom-to-atom mapping between reaction sides.
+
+    In biochemical atom mapping, RDT assigns each atom a global index across
+    the whole reaction.  InChI provides a canonical element-wise ordering
+    (all C's, then all N's, ...).  A MappingEntry connects one atom's RDT
+    index to a species-specific label like ``M_GAP[h]:C#1``, recording which
+    metabolite the atom belongs to, which element it is, and its position
+    in InChI's element-wise numbering.
+
+    Example::
+
+        >>> MappingEntry(2, "from", "M_GAP[h]", "h", "C", 1)
+        MappingEntry(rdt_atom_index=2, side='from', species_id='M_GAP[h]',
+                     compartment='h', element='C', element_index=1)
+        >>> MappingEntry(2, "from", "M_GAP[h]", "h", "C", 1).label
+        'M_GAP[h]:C#1='
+
+    Attributes:
+        rdt_atom_index: Global atom index assigned by RDT across the reaction.
+        side: ``"from"`` (reactant) or ``"to"`` (product).  Determines the
+            separator in :attr:`label`: ``=`` for from, ``,`` for to.
+        species_id: Compartmented species identifier, e.g. ``"M_GAP[h]"``.
+            For multi-species matches (a known substring-matching bug),
+            this may be a space-joined string like ``"M_Pi[c] M_Pi[h]"``.
+        compartment: Subcellular compartment tag, e.g. ``"h"`` for chloroplast,
+            ``"c"`` for cytosol, ``"m"`` for mitochondria.  Empty string when
+            species_id is multi-species and no single compartment applies.
+        element: Chemical element symbol, e.g. ``"C"``, ``"O"``, ``"P"``.
+        element_index: 1-based counter within this element (C#1, C#2, N#1, ...).
+    """
+
     rdt_atom_index: int
     side: str
     species_id: str
+    compartment: str
     element: str
     element_index: int
 
@@ -292,13 +339,28 @@ def build_mapping_entries(
     rdt_index: list[tuple[str, int]],
     inchi_order: list[int],
     species_id: str,
+    compartment: str,
     side: str,
 ) -> list[MappingEntry]:
     """Build structured mapping entries for one molecule.
 
-    Walks the InChI atom order, tracks an element-wise counter via
-    ``collections.Counter`` (C#1, C#2, ..., N#1, ...), and returns
-    one :class:`MappingEntry` per atom.
+    Converts RDT's global atom indices and InChI's canonical element ordering
+    into species-labeled atom references suitable for assembly into the final
+    mapping string.
+
+    For each atom in InChI order, creates a :class:`MappingEntry` with a
+    per-element counter (C#1, C#2, ..., N#1, ...) tracked via
+    ``collections.Counter``.
+
+    Example::
+
+        >>> rdt_index = [("C", 2), ("C", 5), ("O", 1)]
+        >>> inchi_order = [1, 2, 3]  # InChI: C, C, O
+        >>> entries = build_mapping_entries(rdt_index, inchi_order, "M_X[h]", "h", "from")
+        >>> entries[0].label
+        'M_X[h]:C#1='
+        >>> entries[2].label
+        'M_X[h]:O#1='
 
     Args:
         rdt_index: Per-atom ``(element, global_atom_index)`` from
@@ -306,10 +368,12 @@ def build_mapping_entries(
         inchi_order: 1-based atom-table line numbers in InChI order,
             from :func:`parse_inchi_atom_order`.
         species_id: Compartmented species identifier (e.g. ``"M_GAP[h]"``).
+        compartment: Subcellular compartment (e.g. ``"h"``).  Empty string
+            when species_id is multi-species.
         side: ``"from"`` for reactants, ``"to"`` for products.
 
     Returns:
-        List of :class:`MappingEntry` objects.
+        List of :class:`MappingEntry` objects, one per atom.
     """
     counts: Counter[str] = Counter()
     entries: list[MappingEntry] = []
@@ -320,6 +384,7 @@ def build_mapping_entries(
             rdt_atom_index=mapping_index,
             side=side,
             species_id=species_id,
+            compartment=compartment,
             element=element,
             element_index=counts[element],
         ))
@@ -327,18 +392,27 @@ def build_mapping_entries(
 
 
 def assemble_mapping(entries: list[MappingEntry]) -> str:
-    """Assemble the final mapping string from structured entries.
+    """Assemble the final atom-to-atom mapping string from all entries.
 
-    Sorts entries by ``rdt_atom_index``, drops hydrogen atoms, and
-    concatenates the remaining labels into a single string.
+    Takes mapping entries from all molecules in a reaction, sorts them by
+    RDT's global atom index, drops hydrogen atoms (which are typically
+    not matched between sides), and concatenates the remaining labels.
+
+    The result is a single string encoding the full mapping::
+
+        M_GAP[h]:O#1=M_FBP[h]:O#2,M_GAP[h]:C#1=M_FBP[h]:C#5,...
+
+    Reactant atoms are terminated with ``=``, product atoms with ```,``
+    (from :attr:`MappingEntry.label`).  These link across the ``=`` sign
+    to show which reactant atom maps to which product atom.
 
     Args:
-        entries: :class:`MappingEntry` objects from multiple calls to
-            :func:`build_mapping_entries`.
+        entries: :class:`MappingEntry` objects from all molecules, collected
+            across multiple calls to :func:`build_mapping_entries`.
 
     Returns:
-        Single-line mapping string, e.g.
-        ``"M_GAP[h]:O#1=M_FBP[h]:O#2,M_GAP[h]:C#1=..."``.
+        Single-line mapping string.  Empty string if all entries are hydrogen
+        or the list is empty.
     """
     non_h = [e for e in entries if e.element != "H"]
     non_h.sort(key=lambda e: e.rdt_atom_index)
@@ -587,8 +661,9 @@ def postprocess_reaction(rxn_dir: Path) -> tuple[bool, str, str]:
             # ~ species_id_path.write_text(species_id + "\n")
 
             inchi_order = parse_inchi_atom_order(inchi_text)
+            compartment = extract_compartment(species_id)
 
-            entries = build_mapping_entries(rdt_index, inchi_order, species_id, mapping_side)
+            entries = build_mapping_entries(rdt_index, inchi_order, species_id, compartment, mapping_side)
             all_entries.extend(entries)
 
             counter += 1
