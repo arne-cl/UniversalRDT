@@ -108,6 +108,7 @@ class MoleculeProcessingResult:
         species_id: Identified species with compartment, e.g. "M_GAP[h]".
         compartment: Subcellular compartment tag.
         side: "from" (reactant) or "to" (product).
+        inchi: InChI string (first line from obabel output, no AuxInfo).
     """
     mol_num: int
     rdt_index: list[tuple[str, int]]
@@ -116,6 +117,7 @@ class MoleculeProcessingResult:
     species_id: str
     compartment: str
     side: str
+    inchi: str = ""
 
 
 @dataclass
@@ -665,6 +667,7 @@ def process_reaction_data(rxn_dir: Path) -> ReactionProcessingResult:
     for i, mol_block in enumerate(mol_blocks):
         rdt_index = parse_mdl_atom_table(mol_block)
         inchi_text = obabel_to_inchi(mol_block)
+        inchi_string = inchi_text.split("\n")[0] if inchi_text else ""
         inchikey = obabel_to_inchikey(mol_block)
 
         if not inchikey:
@@ -699,6 +702,7 @@ def process_reaction_data(rxn_dir: Path) -> ReactionProcessingResult:
             species_id=species_id,
             compartment=compartment,
             side=side,
+            inchi=inchi_string,
         ))
         counter += 1
 
