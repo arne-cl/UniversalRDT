@@ -57,16 +57,14 @@ def test_find_species_with_cmp_miss():
 
 
 def test_find_species_with_cmp_multi_substring_false_positive():
-    """find_species_with_cmp_multi uses ``sid in entry`` substring matching.
+    """find_species_with_cmp_multi MUST NOT use substring matching.
 
-    When ``species_ids`` contains ``"M_Glu"``, it falsely matches
-    ``"M_Glu-SeA[m]"`` because ``"M_Glu" in "M_Glu-SeA[m]"`` is True.
-    This produces the invalid multi-species result
-    ``"M_Glu[m] M_Glu-SeA[m]"`` where ``M_Glu-SeA`` is an entirely
-    different metabolite.
+    When ``species_ids`` contains ``"M_Glu"``, it should match only
+    ``"M_Glu[m]"``, not ``"M_Glu-SeA[m]"`` — these are different
+    metabolites and substring matching falsely conflates them.
     """
     result = run_rdt.find_species_with_cmp_multi(
         species_ids=["M_Glu"],
         cmp_list=["M_Glu[m]", "M_Glu-SeA[m]"],
     )
-    assert result == "M_Glu[m] M_Glu-SeA[m]"
+    assert result == "M_Glu[m]"

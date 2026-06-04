@@ -290,11 +290,11 @@ def load_species_list(text: str) -> list[str]:
 
 
 def find_species_with_cmp(species_no_cmp: str, cmp_list: list[str]) -> str | None:
-    """Find all compartmented species IDs that contain the given base ID.
+    """Find compartmented species IDs whose base name matches exactly.
 
-    Replaces `grep "$species_id_without_cmp" from_species_with_cmp`.
-    Multiple matches are space-joined, mirroring the bash behaviour where
-    `echo $(grep ...)` collapses newlines into spaces.
+    Matches where the compartmented entry starts with the base species
+    followed by ``[`` (e.g. ``"M_GAP"`` matches ``"M_GAP[h]"`` but not
+    ``"M_GAP_foo[h]"``, avoiding substring false positives).
 
     Args:
         species_no_cmp: Species ID without compartment (e.g. "M_GAP").
@@ -303,32 +303,35 @@ def find_species_with_cmp(species_no_cmp: str, cmp_list: list[str]) -> str | Non
     Returns:
         Space-joined string of all matching entries, or `None` if no match.
     """
-    matches = [entry for entry in cmp_list if species_no_cmp in entry]
+    prefix = species_no_cmp + "["
+    matches = [entry for entry in cmp_list if entry.startswith(prefix)]
     if matches:
         return " ".join(matches)
     return None
 
 
 def find_species_with_cmp_multi(species_ids: list[str], cmp_list: list[str]) -> str | None:
-    """Find compartmented species IDs matching any of several base IDs.
+    """Find compartmented species IDs matching any of several base IDs via
+    exact prefix match.
 
-    When `lookup_species` returns multiple candidates (e.g. both
-    `M_Glc` and `M_starch1` share the same InChIKey prefix), the
-    bash `grep` searches for all of them against the species list at
-    once.  This function replicates that: it tries every candidate
-    against the compartmented list and returns all unique hits.
+    When ``lookup_species`` returns multiple candidates (e.g. both
+    ``M_Glc`` and ``M_starch1`` share the same InChIKey), each candidate
+    is matched against the compartmented list using ``startswith``
+    (e.g. ``"M_Glc"`` matches ``"M_Glc[c]"`` but not ``"M_Glc-SeA[c]"``).
+    All unique matches are space-joined.
 
     Args:
         species_ids: Candidate species IDs without compartment.
         cmp_list: Species IDs with compartment tags.
 
     Returns:
-        Space-joined string of all unique matching entries, or `None`.
+        Space-joined string of all unique matching entries, or ``None``.
     """
     all_matches = []
     for sid in species_ids:
+        prefix = sid + "["
         for entry in cmp_list:
-            if sid in entry and entry not in all_matches:
+            if entry.startswith(prefix) and entry not in all_matches:
                 all_matches.append(entry)
     if all_matches:
         return " ".join(all_matches)
