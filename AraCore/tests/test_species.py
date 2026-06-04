@@ -68,3 +68,25 @@ def test_find_species_with_cmp_multi_substring_false_positive():
         cmp_list=["M_Glu[m]", "M_Glu-SeA[m]"],
     )
     assert result == "M_Glu[m]"
+
+
+def test_find_species_with_cmp_multi_multiple_candidates_different_ichikey():
+    """When two candidates share the same InChIKey (e.g. M_Glc and M_starch1),
+    both are searched against the compartmented list.  Only the one with a
+    matching compartment entry is returned.
+
+    This is the DPE reaction case: M_Glc and M_starch1 have identical
+    InChIKeys because starch is a glucose polymer.  The compartment filter
+    (from_species_with_cmp vs to_species_with_cmp) resolves the ambiguity.
+    """
+    result = run_rdt.find_species_with_cmp_multi(
+        species_ids=["M_Glc", "M_starch1"],
+        cmp_list=["M_starch1[h]"],
+    )
+    assert result == "M_starch1[h]"
+
+    result = run_rdt.find_species_with_cmp_multi(
+        species_ids=["M_Glc", "M_starch1"],
+        cmp_list=["M_Glc[h]"],
+    )
+    assert result == "M_Glc[h]"
