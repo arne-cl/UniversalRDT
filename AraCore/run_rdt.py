@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
@@ -782,7 +783,67 @@ def process_reaction(rxn_dir: Path, rdt_jar: Path) -> tuple[bool, str, str]:
     return postprocess_reaction(rxn_dir)
 
 
-def main():
+def _run_worker(
+    rxn_dir: Path, rdt_jar: Path, postprocess_only: bool,
+) -> tuple[bool, str, str]:
+    """Worker function executed in a subprocess by ``ProcessPoolExecutor``.
+
+    Must be a top-level function so it is picklable.
+
+    Args:
+        rxn_dir: Path to a single reaction subfolder.
+        rdt_jar: Path to the RDT JAR file.
+        postprocess_only: If True, skip the RDT Java step.
+
+    Returns:
+        ``(success, mapping_lines_text, mapping_text)`` tuple.
+    """
+    if postprocess_only:
+        return postprocess_reaction(rxn_dir)
+    return process_reaction(rxn_dir, rdt_jar)
+
+
+def process_reactions_parallel(
+    rxn_folders: list[Path],
+    rdt_jar: Path,
+    workers: int | None = None,
+    postprocess_only: bool = False,
+) -> tuple[int, int]:
+    """Process reaction folders in parallel using a process pool.
+
+    Args:
+        rxn_folders: List of reaction directory paths.
+        rdt_jar: Path to the RDT JAR file.
+        workers: Number of worker processes. ``None`` uses the default
+            (typically ``os.cpu_count()``).
+        postprocess_only: If True, skip the RDT Java step.
+
+    Returns:
+        ``(success_count, total_count)`` tuple.
+    """
+    dirs = [f for f in rxn_folders if f.is_dir()]
+    total = len(dirs)
+    if total == 0:
+        return 0, 0
+
+    success = 0
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        futures = [
+            executor.submit(_run_worker, d, rdt_jar, postprocess_only)
+            for d in dirs
+        ]
+        for future in futures:
+            try:
+                ok, _, _ = future.result()
+                if ok:
+                    success += 1
+            except Exception:
+                pass
+
+    return success, total
+
+
+def main(argv: list[str] | None = None):
     """CLI entry point: iterate over all reaction folders and run the pipeline."""
     _script_dir = Path(__file__).resolve().parent
 
@@ -809,7 +870,13 @@ def main():
         action="store_true",
         help="Only postprocess existing RDT output (skip RDT Java step)",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="Number of parallel workers (default: uses all CPU cores)",
+    )
+    args = parser.parse_args(argv)
 
     rdt_jar = args.rdt_jar.resolve()
     try:
@@ -819,22 +886,12 @@ def main():
         sys.exit(1)
 
     rxn_folders = sorted(reactions_dir.iterdir())
-    total = len(rxn_folders)
-    success = 0
-
-    for i, rxn_folder in enumerate(rxn_folders, 1):
-        if not rxn_folder.is_dir():
-            continue
-        print(rxn_folder.name)
-
-        if args.postprocess_only:
-            ok, _, _ = postprocess_reaction(rxn_folder)
-            if ok:
-                success += 1
-        else:
-            ok, _, _ = process_reaction(rxn_folder, rdt_jar)
-            if ok:
-                success += 1
+    success, total = process_reactions_parallel(
+        rxn_folders,
+        rdt_jar=rdt_jar,
+        workers=args.workers,
+        postprocess_only=args.postprocess_only,
+    )
 
     print(f"\nProcessed {success}/{total} reactions successfully", file=sys.stderr)
 
