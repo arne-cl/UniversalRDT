@@ -353,7 +353,7 @@ def resolve_metabolite(met: dict) -> dict | None:
     return None
 
 
-def resolve_all_metabolites(model: dict, cache: dict, verbose: bool = False) -> dict:
+def resolve_all_metabolites(model: dict, cache: dict, verbose: bool = False) -> tuple[dict, list[str]]:
     """Build a smiles_map (met_id -> (smiles, inchikey)) for all model metabolites.
 
     Uses cached entries where available, otherwise resolves via the API
@@ -361,19 +361,31 @@ def resolve_all_metabolites(model: dict, cache: dict, verbose: bool = False) -> 
     A 2s delay is inserted before each set of API requests.
 
     When verbose > 0, prints per-metabolite progress to stderr.
+
+    Returns:
+        Tuple of (smiles_map, uncovered_ids) where uncovered_ids lists
+        metabolite IDs for which no SMILES could be resolved.
     """
     smiles_map = {}
+    uncovered_ids = []
     total = len(model["metabolites"])
 
     for i, met in enumerate(model["metabolites"], 1):
         mid = met["id"]
-        if verbose:
-            cached_hit = mid in cache and cache[mid].get("smiles")
-            print(f"  [{i}/{total}] {mid}{' (cached)' if cached_hit else ''}", file=sys.stderr)
-        if mid in cache and cache[mid].get("smiles"):
-            smiles_map[mid] = (cache[mid]["smiles"], cache[mid].get("inchikey", ""))
-            continue
+        if mid in cache:
+            if cache[mid].get("unresolved"):
+                uncovered_ids.append(mid)
+                if verbose:
+                    print(f"  [{i}/{total}] {mid} (cached, no SMILES)", file=sys.stderr)
+                continue
+            if cache[mid].get("smiles"):
+                if verbose:
+                    print(f"  [{i}/{total}] {mid} (cached)", file=sys.stderr)
+                smiles_map[mid] = (cache[mid]["smiles"], cache[mid].get("inchikey", ""))
+                continue
 
+        if verbose:
+            print(f"  [{i}/{total}] {mid}", file=sys.stderr)
         time.sleep(2)
         result = resolve_metabolite(met)
         if result:
@@ -381,9 +393,12 @@ def resolve_all_metabolites(model: dict, cache: dict, verbose: bool = False) -> 
             smiles_map[mid] = (result["smiles"], result.get("inchikey", ""))
             if verbose:
                 print(f"    -> {result['source']}", file=sys.stderr)
-        elif verbose:
-            print(f"    -> no SMILES found", file=sys.stderr)
-    return smiles_map
+        else:
+            cache[mid] = {"unresolved": True, "smiles": None, "source": "none"}
+            uncovered_ids.append(mid)
+            if verbose:
+                print(f"    -> no SMILES found", file=sys.stderr)
+    return smiles_map, uncovered_ids
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -436,9 +451,8 @@ def main() -> None:
 
     if args.verbose:
         print("Resolving metabolite SMILES...", file=sys.stderr)
-    smiles_map = {}
     try:
-        smiles_map = resolve_all_metabolites(model, cache, verbose=args.verbose)
+        smiles_map, uncovered_ids = resolve_all_metabolites(model, cache, verbose=args.verbose)
         covered = len(smiles_map)
         total_mets = len(model["metabolites"])
         uncovered = total_mets - covered
@@ -447,13 +461,19 @@ def main() -> None:
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        if uncovered_ids:
+            no_smiles_file = output_dir / "metabolites_without_smiles.txt"
+            no_smiles_file.write_text("\n".join(sorted(uncovered_ids)) + "\n")
+            if args.verbose:
+                print(f"Uncovered metabolites written to {no_smiles_file.resolve()}", file=sys.stderr)
+
         stats = process_model(model, smiles_map, output_dir)
         print(
             f"Reactions: {stats['total']} total, "
             f"{stats['included']} included, "
             f"{stats['excluded_exchange']} exchange, "
             f"{stats['excluded_biomass']} biomass, "
-            f"{stats['excluded_no_smiles']} no SMILES",
+            f"{stats['excluded_no_smiles']} no/incomplete SMILES",
             file=sys.stderr,
         )
         print(f"Output written to {output_dir.resolve()}", file=sys.stderr)
