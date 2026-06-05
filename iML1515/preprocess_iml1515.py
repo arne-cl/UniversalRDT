@@ -313,8 +313,8 @@ def fetch_smiles_chebi(chebi_id: str) -> dict | None:
     data = _json_get(url)
     if data is None:
         return None
-    struct = data.get("default_structure", {})
-    if struct.get("smiles"):
+    struct = data.get("default_structure")
+    if struct and struct.get("smiles"):
         return {
             "smiles": struct["smiles"],
             "inchikey": struct.get("inchikey", ""),
@@ -436,30 +436,31 @@ def main() -> None:
 
     if args.verbose:
         print("Resolving metabolite SMILES...", file=sys.stderr)
-    smiles_map = resolve_all_metabolites(model, cache, verbose=args.verbose)
+    smiles_map = {}
+    try:
+        smiles_map = resolve_all_metabolites(model, cache, verbose=args.verbose)
+        covered = len(smiles_map)
+        total_mets = len(model["metabolites"])
+        uncovered = total_mets - covered
+        print(f"Metabolites: {covered}/{total_mets} covered, {uncovered} uncovered", file=sys.stderr)
 
-    if args.verbose:
-        print(f"Saving cache ({len(cache)} entries)...", file=sys.stderr)
-    save_cache(cache, args.cache_file)
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    covered = len(smiles_map)
-    total_mets = len(model["metabolites"])
-    uncovered = total_mets - covered
-    print(f"Metabolites: {covered}/{total_mets} covered, {uncovered} uncovered", file=sys.stderr)
-
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    stats = process_model(model, smiles_map, output_dir)
-    print(
-        f"Reactions: {stats['total']} total, "
-        f"{stats['included']} included, "
-        f"{stats['excluded_exchange']} exchange, "
-        f"{stats['excluded_biomass']} biomass, "
-        f"{stats['excluded_no_smiles']} no SMILES",
-        file=sys.stderr,
-    )
-    print(f"Output written to {output_dir.resolve()}", file=sys.stderr)
+        stats = process_model(model, smiles_map, output_dir)
+        print(
+            f"Reactions: {stats['total']} total, "
+            f"{stats['included']} included, "
+            f"{stats['excluded_exchange']} exchange, "
+            f"{stats['excluded_biomass']} biomass, "
+            f"{stats['excluded_no_smiles']} no SMILES",
+            file=sys.stderr,
+        )
+        print(f"Output written to {output_dir.resolve()}", file=sys.stderr)
+    finally:
+        if args.verbose:
+            print(f"Saving cache ({len(cache)} entries)...", file=sys.stderr)
+        save_cache(cache, args.cache_file)
 
 
 if __name__ == "__main__":
