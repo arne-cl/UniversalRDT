@@ -323,61 +323,48 @@ def fetch_smiles_chebi(chebi_id: str) -> dict | None:
     return None
 
 
-def resolve_metabolite(met: dict, cache: dict) -> dict | None:
-    """Resolve SMILES and InChIKey for a single metabolite, trying sources in order.
+_RESOLVERS = [
+    ("seed.compound", "ModelSEED", fetch_smiles_modelseed),
+    ("inchi_key", "PubChem", fetch_smiles_pubchem),
+    ("chebi", "ChEBI", fetch_smiles_chebi),
+]
 
-    Priority chain (stop at first success):
-      1. ModelSEED Solr API (via seed.compound annotation)
-      2. PubChem REST API (via inchi_key annotation)
-      3. ChEBI REST API (via chebi annotation)
 
-    Checks the cache first. Successful results are written into cache so
-    callers can persist it later.
+def resolve_metabolite(met: dict) -> dict | None:
+    """Resolve SMILES/InChIKey for a metabolite via the priority API chain.
+
+    Tries each resolver in order (ModelSEED -> PubChem -> ChEBI) and returns
+    the first successful result.
+
+    A metabolite's annotation may list multiple IDs for the same source
+    (e.g. several ChEBI IDs or InChIKeys from different cross-references).
+    Each is tried in turn until one returns a result.
     """
-    mid = met["id"]
     ann = met.get("annotation", {})
-
-    if mid in cache:
-        cached = cache[mid]
-        if cached.get("smiles") and cached.get("inchikey"):
-            return cached
-
-    seed_ids = ann.get("seed.compound", [])
-    for seed_id in seed_ids:
-        time.sleep(2)
-        result = fetch_smiles_modelseed(seed_id)
-        if result:
-            cache[mid] = result
-            return result
-
-    inchi_keys = ann.get("inchi_key", [])
-    for inchi_key in inchi_keys:
-        time.sleep(2)
-        result = fetch_smiles_pubchem(inchi_key)
-        if result:
-            cache[mid] = result
-            return result
-
-    chebi_ids = ann.get("chebi", [])
-    for chebi_id in chebi_ids:
-        time.sleep(2)
-        result = fetch_smiles_chebi(chebi_id)
-        if result:
-            cache[mid] = result
-            return result
-
+    for ann_key, source_name, fetch_fn in _RESOLVERS:
+        for source_id in ann.get(ann_key, []):
+            result = fetch_fn(source_id)
+            if result:
+                return {
+                    "smiles": result["smiles"],
+                    "inchikey": result.get("inchikey", ""),
+                    "source": source_name,
+                }
     return None
 
 
-def resolve_all_metabolites(model: dict, cache: dict, verbose: int = 0) -> dict:
+def resolve_all_metabolites(model: dict, cache: dict, verbose: bool = False) -> dict:
     """Build a smiles_map (met_id -> (smiles, inchikey)) for all model metabolites.
 
     Uses cached entries where available, otherwise resolves via the API
-    priority chain. The cache dict is mutated in-place with any new results.
+    priority chain. New results are written into cache for later reuse.
+    A 2s delay is inserted before each set of API requests.
+
     When verbose > 0, prints per-metabolite progress to stderr.
     """
     smiles_map = {}
     total = len(model["metabolites"])
+
     for i, met in enumerate(model["metabolites"], 1):
         mid = met["id"]
         if verbose:
@@ -386,12 +373,14 @@ def resolve_all_metabolites(model: dict, cache: dict, verbose: int = 0) -> dict:
         if mid in cache and cache[mid].get("smiles"):
             smiles_map[mid] = (cache[mid]["smiles"], cache[mid].get("inchikey", ""))
             continue
-        result = resolve_metabolite(met, cache)
+
+        time.sleep(2)
+        result = resolve_metabolite(met)
         if result:
+            cache[mid] = result
             smiles_map[mid] = (result["smiles"], result.get("inchikey", ""))
             if verbose:
-                src = result.get("source", "?")
-                print(f"    -> {src}", file=sys.stderr)
+                print(f"    -> {result['source']}", file=sys.stderr)
         elif verbose:
             print(f"    -> no SMILES found", file=sys.stderr)
     return smiles_map
@@ -425,9 +414,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "-v",
         "--verbose",
-        action="count",
-        default=0,
-        help="Increase verbosity (repeatable)",
+        action="store_true",
+        default=False,
+        help="Increase verbosity",
     )
     return parser.parse_args(argv)
 
