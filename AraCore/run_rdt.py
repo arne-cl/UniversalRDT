@@ -259,7 +259,7 @@ def parse_inchi_atom_order(inchi_text: str) -> list[int]:
         if "AuxInfo" in line and "/N:" in line:
             match = _N_FIELD.search(line)
             if match:
-                return [int(x) for x in match.group(1).split(",")]
+                return [int(x) for x in match.group(1).replace(";", ",").split(",")]
     return [1]
 
 

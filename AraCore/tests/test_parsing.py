@@ -84,3 +84,12 @@ def test_parse_inchi_atom_order_single_atom_with_n_field():
     inchi_text = "InChI=1S/H2O/h1H2\nAuxInfo=1/0/N:1/rA:1O/rB:/rC:;\n"
     order = run_rdt.parse_inchi_atom_order(inchi_text)
     assert order == [1]
+
+
+def test_parse_inchi_atom_order_multicomponent():
+    inchi_text = (
+        "InChI=1S/2H2O/h2*1H2\n"
+        "AuxInfo=1/1/N:3,4;1,2/rA:3H1H2H1H2/rB;s1;s2;s1;s2/rC:;;;\n"
+    )
+    order = run_rdt.parse_inchi_atom_order(inchi_text)
+    assert order == [3, 4, 1, 2]
