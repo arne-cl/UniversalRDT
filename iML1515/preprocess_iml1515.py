@@ -369,26 +369,37 @@ def resolve_metabolite(met: dict, cache: dict) -> dict | None:
     return None
 
 
-def resolve_all_metabolites(model: dict, cache: dict) -> dict:
+def resolve_all_metabolites(model: dict, cache: dict, verbose: int = 0) -> dict:
     """Build a smiles_map (met_id -> (smiles, inchikey)) for all model metabolites.
 
     Uses cached entries where available, otherwise resolves via the API
     priority chain. The cache dict is mutated in-place with any new results.
+    When verbose > 0, prints per-metabolite progress to stderr.
     """
     smiles_map = {}
-    for met in model["metabolites"]:
+    total = len(model["metabolites"])
+    for i, met in enumerate(model["metabolites"], 1):
         mid = met["id"]
+        if verbose:
+            cached_hit = mid in cache and cache[mid].get("smiles")
+            print(f"  [{i}/{total}] {mid}{' (cached)' if cached_hit else ''}", file=sys.stderr)
         if mid in cache and cache[mid].get("smiles"):
             smiles_map[mid] = (cache[mid]["smiles"], cache[mid].get("inchikey", ""))
             continue
         result = resolve_metabolite(met, cache)
         if result:
             smiles_map[mid] = (result["smiles"], result.get("inchikey", ""))
+            if verbose:
+                src = result.get("source", "?")
+                print(f"    -> {src}", file=sys.stderr)
+        elif verbose:
+            print(f"    -> no SMILES found", file=sys.stderr)
     return smiles_map
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments, falling back to defaults for model path, output, and cache."""
+    script_dir = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Preprocess iML1515 model for RDT atom mapping"
     )
@@ -402,13 +413,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("iML1515/reaction_intermediates"),
+        default=script_dir / "reaction_intermediates",
         help="Output directory for per-reaction folders",
     )
     parser.add_argument(
         "--cache-file",
         type=Path,
-        default=Path("iML1515/smiles_cache.json"),
+        default=script_dir / "smiles_cache.json",
         help="JSON cache file for SMILES/InChIKey results",
     )
     parser.add_argument(
@@ -426,16 +437,17 @@ def main() -> None:
     args = parse_args()
 
     if args.verbose:
-        print(f"Loading model from {args.model_path}...", file=sys.stderr)
+        print(f"Loading model from {args.model_path.resolve()}...", file=sys.stderr)
     model = load_model(args.model_path)
 
     if args.verbose:
-        print(f"Loading cache from {args.cache_file}...", file=sys.stderr)
+        abs_cache = Path(args.cache_file).resolve()
+        print(f"Loading cache from {abs_cache}...", file=sys.stderr)
     cache = load_cache(args.cache_file)
 
     if args.verbose:
         print("Resolving metabolite SMILES...", file=sys.stderr)
-    smiles_map = resolve_all_metabolites(model, cache)
+    smiles_map = resolve_all_metabolites(model, cache, verbose=args.verbose)
 
     if args.verbose:
         print(f"Saving cache ({len(cache)} entries)...", file=sys.stderr)
